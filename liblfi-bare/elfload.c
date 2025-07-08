@@ -41,7 +41,7 @@ static bool
 bufreadelfseg(struct LFIAddrSpace* as, uintptr_t start, uintptr_t offset, uintptr_t end,
         size_t p_offset, size_t filesz, int prot, buf_t buf, size_t pagesize)
 {
-    void* p = mmap((void*)start, end - start, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_ANONYMOUS, -1, 0);
+    void* p = mmap((void*)start, end - start, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (p == (void*) -1) {
         return false;
     }
@@ -179,7 +179,7 @@ lfi_proc_loadelf(struct LFIAddrSpace* as, uint8_t* progdat, size_t progsz, uint8
 
     size_t stacksize = opts.stacksize;
 
-    void* stack = mmap(NULL, stacksize, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);   
+    void* stack = mmap(NULL, stacksize, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);   
     if (stack == (void*) -1)
         goto err;
 
