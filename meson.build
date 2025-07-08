@@ -88,8 +88,10 @@ if not get_option('liblfi-only')
 endif
 if not get_option('tools-only')
   subdir('liblfi-small')
+  subdir('liblfi-bare')
   if get_option('liblfi') == 'standard'
     subdir('liblfi')
   endif
   subdir('lfi-run')
+  subdir('lfi-bare-run')
 endif
