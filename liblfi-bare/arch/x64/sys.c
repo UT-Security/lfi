@@ -34,6 +34,9 @@ arch_syshandle(struct LFIContext* ctx)
     uint64_t orig_rax = regs->rax;
 
     switch (regs->rax) {
+    case TUX_SYS_arch_prctl:
+        regs->rax = sys_arch_prctl(p, regs->rdi, regs->rsi);
+        break;
     default:
         // Generic syscalls.
         regs->rax = syshandle(p, regs->rax, regs->rdi, regs->rsi, regs->rdx,
