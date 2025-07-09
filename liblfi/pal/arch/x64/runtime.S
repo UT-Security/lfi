@@ -45,7 +45,6 @@ lfi_ctx_entry:
 .globl lfi_restore_regs
 lfi_restore_regs:
     mov PROC_REGS+8*17(%rdi), %r11
-    wrgsbase %r11
     mov PROC_REGS+8*0(%rdi), %rsp
     mov PROC_REGS+8*1(%rdi), %rax
     mov PROC_REGS+8*2(%rdi), %rcx

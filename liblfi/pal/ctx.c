@@ -54,8 +54,8 @@ static void
 syssetup(struct LFIPlatform* plat, struct Sys* sys, uintptr_t base)
 {
     sys->rtcalls[0] = (uintptr_t) &lfi_syscall_entry;
-    sys->rtcalls[1] = (uintptr_t) &lfi_get_tp;
-    sys->rtcalls[2] = (uintptr_t) &lfi_set_tp;
+    sys->rtcalls[1] = (uintptr_t) 0;
+    sys->rtcalls[2] = (uintptr_t) 0;
     sys->rtcalls[3] = (uintptr_t) &lfi_ret;
     sys->base = base;
     // Only used in sysexternal mode (where there is a syspage per context)

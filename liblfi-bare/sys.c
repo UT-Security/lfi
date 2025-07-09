@@ -96,6 +96,7 @@ static void*
 threadspawn(void* arg)
 {
     struct TuxThread* p = (struct TuxThread*) arg;
+    __asm__ __volatile__("wrgsbase %0" : : "r"(p->p_ctx->tp));
     lfi_tux_proc_run(p);
     VERBOSE(p->proc->tux, "thread %d exited", p->tid);
     return NULL;

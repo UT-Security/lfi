@@ -19,8 +19,8 @@ sys_arch_prctl(struct TuxThread* p, int code, uintptr_t addr)
     VERBOSE(p->proc->tux, "sys_arch_prctl(%lx, %lx)", code, addr);
     switch (code) {
     case TUX_ARCH_SET_FS:
-        //lfi_ctx_tpset(p->p_ctx, addr);
          __asm__ __volatile__("wrgsbase %0" : : "r"(addr));
+        lfi_ctx_tpset(p->p_ctx, addr);
         return 0;
     default:
         return -TUX_EINVAL;
