@@ -45,7 +45,7 @@ lfi_ctx_entry:
 .globl lfi_restore_regs
 lfi_restore_regs:
     mov PROC_REGS+8*17(%rdi), %r11
-    wrgsbase %r11
+    //wrgsbase %r11
     mov PROC_REGS+8*0(%rdi), %rsp
     mov PROC_REGS+8*1(%rdi), %rax
     mov PROC_REGS+8*2(%rdi), %rcx
@@ -126,6 +126,25 @@ lfi_set_tp:
 .p2align 4
 .global lfi_syscall_entry
 lfi_syscall_entry:
+//    cmpq $156, %rax
+//    jg LBB0_3
+//    cmpq $56, %rax
+//    je L_runtime
+//    cmpq $60, %rax
+//    je L_runtime
+//    jmp L_passthrough
+//LBB0_3:
+//    cmpq $231, %rax
+//    je L_runtime
+//    cmpq $158, %rax
+//    je L_runtime
+//L_passthrough:
+//    pushq %r11
+//    syscall
+//    popq %r11
+//    jmpq *%r11
+//    int3
+//L_runtime:
     SAVE_PARTIAL_REGS
     // Proc* is now in %rcx
     mov (%rcx), %rsp // load stack

@@ -50,6 +50,7 @@ static inline int tuxerr(int err) {
 uintptr_t
 sys_exit(struct TuxThread* p, uint64_t code)
 {
+    VERBOSE(p->proc->tux, "sys_exit(%lx)", code);
     //clearctid(p);
     if (p->proc->tux->opts.pause_on_exit) {
         lfi_ctx_pause(p->p_ctx, code);
@@ -62,6 +63,7 @@ sys_exit(struct TuxThread* p, uint64_t code)
 uintptr_t
 sys_exit_group(struct TuxThread* p, uint64_t code)
 {
+    VERBOSE(p->proc->tux, "sys_exit_group(%lx)", code);
     // TODO: exit all threads
     if (p->proc->tux->opts.pause_on_exit)
         lfi_ctx_pause(p->p_ctx, code);
@@ -197,6 +199,7 @@ syshandle(struct TuxThread* p, uintptr_t sysno, uintptr_t a0, uintptr_t a1,
     SYS(clone,             sys_clone(p, a0, a1, a2, a4, a3, a5))
 # endif
     default:
+      //VERBOSE(p->proc->tux, "Unexpected pasthrough %ld", sysno);
       r = sys_passthrough(p, sysno, a0, a1, a2, a3, a4, a5);
     }
 
