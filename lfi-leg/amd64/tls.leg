@@ -22,7 +22,7 @@ ReadTP_any = 'mov' [qwl]? SEP '%fs:' '0x'? '0' - COMMA r:XREG - {
 }
 
 OpTP_any_addr = m:NAME '%fs:' a:Addr - COMMA r:REG - {
-    mkinsn("%s %%gs:%s, %s", m.val, a.val, r.val);
+    mkinsn("%s %%gs:%s, %s", m.val, a.unmod, r.val);
     rfree(r); rfree(m); rfree(a)
 }
 
