@@ -15,19 +15,27 @@
 Top = Syscall | Retcall
 
 Syscall = 'syscall' - {
+    mkinsn("pushq %%r11");
+    mkinsn("pushq %%r11");
     mkdirective(bundle_lock());
     mkinsn("leaq 1024f(%%rip), %%r11");
     mkinsn("jmpq %s", rtcall(0));
     mklabel("1024");
     mkdirective(bundle_unlock());
+    mkinsn("popq %%r11");
+    mkinsn("popq %%r11");
 }
 
 Retcall = ('//lfi:' | '#lfi:') 'rtcall_return' - {
+    mkinsn("pushq %%r11");
+    mkinsn("pushq %%r11");
     mkdirective(bundle_lock());
     mkinsn("leaq 1024f(%%rip), %%r11");
     mkinsn("jmpq %s", rtcall(24));
     mklabel("1024");
     mkdirective(bundle_unlock());
+    mkinsn("popq %%r11");
+    mkinsn("popq %%r11");
 }
 
 %%
