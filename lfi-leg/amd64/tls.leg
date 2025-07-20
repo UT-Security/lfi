@@ -14,25 +14,26 @@
 static int count;
 %}
 
-Top = (ReadTP_rax | ReadTP_any | OpTP_any | OpTP_any_addr) !.
+Top = (OpTP_src_any | OpTP_src_any_addr | OpTP_dst_any | OpTP_dst_any_addr) !.
 
-ReadTP_any = 'mov' [qwl]? SEP '%fs:' '0x'? '0' - COMMA r:XREG - {
-    mkinsn("movq %%gs:0x0, %s", r.val);
-    rfree(r);
-}
-
-OpTP_any_addr = m:NAME '%fs:' a:Addr - COMMA r:REG - {
+OpTP_src_any_addr = m:NAME '%fs:' a:Addr - COMMA r:REG - {
     mkinsn("%s %%gs:%s, %s", m.val, a.unmod, r.val);
     rfree(r); rfree(m); rfree(a)
 }
 
-OpTP_any = m:NAME '%fs:' n:NUM - COMMA r:REG - {
+OpTP_src_any = m:NAME '%fs:' n:NUM - COMMA r:REG - {
     mkinsn("%s %%gs:%s, %s", m.val, n.val, r.val);
     rfree(r); rfree(m); rfree(n)
 }
 
-ReadTP_rax = 'mov' [qwl]? SEP '%fs:' '0x'? '0' - COMMA '%rax' - {
-    mkinsn("movq %%gs:0x0, %%rax");
+OpTP_dst_any_addr = m:NAME r:REG - COMMA '%fs:' a:Addr - {
+    mkinsn("%s %s, %%gs:%s", m.val, r.val, a.unmod);
+    rfree(r); rfree(m); rfree(a)
+}
+
+OpTP_dst_any = m:NAME r:REG - COMMA '%fs:' n:NUM - {
+    mkinsn("%s %s, %%gs:%s", m.val, r.val, n.val);
+    rfree(r); rfree(m); rfree(n)
 }
 
 %%
