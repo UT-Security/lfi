@@ -46,15 +46,19 @@ lo(const char* reg)
     return reg;
 }
 
-static char*
+static void
 rtcall(unsigned offset)
 {
     if (args.sysexternal) {
-        return xasprintf("*%d(%%r13)", offset);
+        mkinsn("jmpq *%d(%%r13)", offset);
+    } else if (args.zerobase && args.p2size != 0) {
+        mkinsn("movq %%gs:40, %%r14");
+        mkinsn("jmpq *%s(%%r14)");
+        mkinsn("xorl %%r14d, %%r14d");
     } else if (args.zerobase) {
-        return xasprintf("*%%gs:%d", offset);
+        mkinsn("jmpq *%%gs:%d", offset);
     } else {
-        return xasprintf("*%d(%%r14)", offset);
+        mkinsn("jmpq *%s(%%r14)", offset);
     }
 }
 
