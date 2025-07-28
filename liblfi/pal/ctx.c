@@ -63,6 +63,8 @@ syssetup(struct LFIPlatform* plat, struct Sys* sys, uintptr_t base)
         sys->ctxp = (uintptr_t) &lfi_myctx;
     int err = host_mprotect((void*) base, plat->opts.pagesize, LFI_PROT_READ);
     assert(err == 0);
+
+    asm volatile ("movq %0, %%fs:40" :: "r"(base));
 }
 
 EXPORT struct LFIContext*

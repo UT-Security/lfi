@@ -19,7 +19,6 @@ sys_arch_prctl(struct TuxThread* p, int code, lfiptr_t addr)
     switch (code) {
     case TUX_ARCH_SET_FS:
         lfi_ctx_tpset(p->p_ctx, addr);
-        *((lfiptr_t*) addr) = p->proc->p_info.base;
         return 0;
     default:
         return -TUX_EINVAL;

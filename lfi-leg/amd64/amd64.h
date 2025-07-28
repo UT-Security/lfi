@@ -52,7 +52,7 @@ rtcall(unsigned offset)
     if (args.sysexternal) {
         mkinsn("jmpq *%d(%%r13)", offset);
     } else if (args.zerobase && args.p2size != 0) {
-        mkinsn("movq %%gs:40, %%r14");
+        mkinsn("movq %%fs:40, %%r14");
         mkinsn("jmpq *%s(%%r14)");
         mkinsn("xorl %%r14d, %%r14d");
     } else if (args.zerobase) {
