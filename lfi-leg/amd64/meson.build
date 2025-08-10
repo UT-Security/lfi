@@ -11,6 +11,7 @@ leg_inputs = [
   'pextelim.leg',
   'meter.leg',
   'poc.leg',
+  'nocallret.leg',
 ]
 
 leg_addr_inputs = [

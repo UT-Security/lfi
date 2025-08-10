@@ -21,6 +21,7 @@ void amd64_branchpass(struct op*);
 void amd64_loadspass(struct op*);
 void amd64_storespass(struct op*);
 void amd64_pocpass(struct op*);
+void amd64_nocallretpass(struct op*);
 void amd64_declpass(struct op*);
 void amd64_tlspass(struct op*);
 void amd64_syscallpass(struct op*);
@@ -33,6 +34,7 @@ static Pass passes[] = {
     (Pass) { .fn = &amd64_loadspass },
     (Pass) { .fn = &amd64_storespass },
     (Pass) { .fn = &amd64_pocpass, .disabled = true },
+    (Pass) { .fn = &amd64_nocallretpass, .disabled = true },
     (Pass) { .fn = &amd64_branchpass },
     (Pass) { .fn = &amd64_meterpass, .disabled = true },
     (Pass) { .fn = &amd64_declpass, .disabled = true },
@@ -75,6 +77,10 @@ amd64_rewrite(FILE* input, struct output* output)
             passes[i].disabled = true;
         if (args.poc && passes[i].fn == &amd64_pocpass)
             passes[i].disabled = false;
+        if (args.boxtype < BOX_BUNDLEJUMPS && args.nocallret && passes[i].fn == &amd64_nocallretpass)
+            passes[i].disabled = false;
+        else if (passes[i].fn == &amd64_nocallretpass)
+            passes[i].disabled = true;
         else if (passes[i].fn == &amd64_pocpass)
             passes[i].disabled = true;
         if (args.decl && passes[i].fn == &amd64_declpass)

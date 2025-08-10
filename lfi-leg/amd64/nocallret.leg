@@ -1,0 +1,62 @@
+%{
+#include "amd64/amd64.h"
+#include "op.h"
+#include "args.h"
+#include "util.h"
+
+#define YY_INPUT(ctx, buf, result, max_size)   \
+{                                              \
+    char yyc = ctx->op->text[ctx->idx];        \
+    ctx->idx += yyc != 0;                      \
+    result = yyc == 0 ? 0 : (*(buf) = yyc, 1); \
+}                                              \
+%}
+
+Top = Ret
+
+CallInd = 'call' 'q'? SEP '*' r:REMAINDER {
+	// turn every indirect call to push - jmp 
+    
+    mkinsn("movq %s, %%r11", r.val);
+	// need %rax as a temporary since %r11 is already in use
+    mkinsn("pushq %%rax");
+    mkinsn("lea %sf(%%rip), %%rax", funcret);
+    // restore %rax and push the return address at the same time
+    mkinsn("xchg %%rax, (%%rsp)");
+    mkinsn("jmpq *%%r11");
+    mkfuncret();
+    rfree(r);
+}
+
+Call = 'call' 'q'? - rest:ITEM {
+	// turn every direct call to push - jmp
+    mkinsn("lea %sf(%%rip), %%r11", funcret);
+    mkinsn("pushq %%r11");
+    mkinsn("jmp %s", rest.val);
+    mkfuncret();
+    rfree(rest);
+}
+
+Ret = 'ret' 'q'? - {
+	// turn every ret into pop - jmp
+    mkinsn("popq %%r11");
+    mkinsn("jmpq *%%r11");
+}
+
+%%
+
+void
+amd64_nocallretpass(struct op* op)
+{
+    if (!op->insn)
+        return;
+    yycontext ctx;
+    memset(&ctx, 0, sizeof(yycontext));
+    ctx.op = op;
+    oplocate(op);
+    if (yyparse(&ctx)) {
+        opremove(op);
+        opfree(op);
+    }
+    yyrelease(&ctx);
+}

@@ -277,6 +277,6 @@ extern char* funcret;
 static inline void
 mkfuncret(void)
 {
-    if (args.poc)
+    if (args.poc || args.nocallret)
         mklabel(funcret);
 }

@@ -55,6 +55,7 @@ struct arguments {
     bool syscall;
     bool largeguard;
     bool zerobase;
+    bool nocallret;
 };
 
 extern struct arguments args;
