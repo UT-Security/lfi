@@ -56,6 +56,7 @@ struct arguments {
     bool largeguard;
     bool zerobase;
     bool nocallret;
+    bool allowjump;
 };
 
 extern struct arguments args;

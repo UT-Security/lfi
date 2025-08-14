@@ -17,7 +17,8 @@ CallIndNoSP = 'call' 'q'? SEP '*' r:XREG_NOSP {
         mkinsn("lea %sf(%%rip), %%r11", funcret);
         mkinsn("pushq %%r11");
         mkdirective(".bundle_lock");
-        bundle_mask(r.val);
+        if(!args.allowjump)
+            bundle_mask(r.val);
         mkinsn("jmpq *%s", r.val);
         mkdirective(".bundle_unlock");
         mkdirective(bundle_align());
@@ -25,7 +26,8 @@ CallIndNoSP = 'call' 'q'? SEP '*' r:XREG_NOSP {
         rfree(r);
     } else {
         mkdirective(".bundle_lock");
-        bundle_mask(r.val);
+        if(!args.allowjump)
+            bundle_mask(r.val);
         mkinsn("callq *%s", r.val);
         mkdirective(".bundle_unlock");
         mkdirective(bundle_align());
@@ -40,7 +42,8 @@ CallInd = 'call' 'q'? SEP '*' r:XREG {
         mkinsn("lea %sf(%%rip), %%rax", funcret);
         mkinsn("xchg %%rax, (%%rsp)");
         mkdirective(".bundle_lock");
-        bundle_mask("%r11");
+        if(!args.allowjump)
+            bundle_mask("%r11");
         mkinsn("jmpq *%%r11");
         mkdirective(".bundle_unlock");
         mkdirective(bundle_align());
@@ -48,7 +51,8 @@ CallInd = 'call' 'q'? SEP '*' r:XREG {
         rfree(r);
     } else {
         mkdirective(".bundle_lock");
-        bundle_mask(r.val);
+        if(!args.allowjump)
+            bundle_mask(r.val);
         mkinsn("callq *%s", r.val);
         mkdirective(".bundle_unlock");
         mkdirective(bundle_align());
@@ -72,7 +76,8 @@ CallIndMem = 'call' 'q'? SEP '*' a:Addr {
         mkinsn("lea %sf(%%rip), %%rax", funcret);
         mkinsn("xchg %%rax, (%%rsp)");
         mkdirective(".bundle_lock");
-        bundle_mask("%r11");
+        if(!args.allowjump)
+            bundle_mask("%r11");
         mkinsn("jmpq *%%r11");
         mkdirective(".bundle_unlock");
         mkdirective(bundle_align());
@@ -89,7 +94,8 @@ CallIndMem = 'call' 'q'? SEP '*' a:Addr {
         if (args.bundlecall)
             mkdirective(bundle_align());
         mkdirective(".bundle_lock");
-        bundle_mask("%r11");
+        if(!args.allowjump)
+            bundle_mask("%r11");
         bundle_nop_indcall();
         mkinsn("callq *%%r11");
         mkdirective(".bundle_unlock");
@@ -103,7 +109,8 @@ CallIndMemSafe = 'call' 'q'? SEP '*' a:Addr {
     if (args.bundlecall)
         mkdirective(bundle_align());
     mkdirective(".bundle_lock");
-    bundle_mask("%r11");
+    if(!args.allowjump)
+        bundle_mask("%r11");
     bundle_nop_indcall();
     mkinsn("callq *%%r11");
     mkdirective(".bundle_unlock");
@@ -149,7 +156,8 @@ BranchMem = j:JMP - '*' a:Addr {
         mkpost(a);
     }
     mkdirective(".bundle_lock");
-    bundle_mask("%r11");
+    if(!args.allowjump)
+        bundle_mask("%r11");
     mkinsn("%s *%%r11", j.val);
     mkdirective(".bundle_unlock");
     rfree(j); rfree(a);
@@ -158,7 +166,8 @@ BranchMem = j:JMP - '*' a:Addr {
 BranchMemSafe = j:JMP - '*' a:Addr {
     mkinsn("movq %s, %%r11", a.unmod);
     mkdirective(".bundle_lock");
-    bundle_mask("%r11");
+    if(!args.allowjump)
+        bundle_mask("%r11");
     mkinsn("%s *%%r11", j.val);
     mkdirective(".bundle_unlock");
     rfree(j); rfree(a);
@@ -167,13 +176,15 @@ BranchMemSafe = j:JMP - '*' a:Addr {
 Branch = j:JMP '*' r:XREG {
     if (!args.poc) {
         mkdirective(".bundle_lock");
-        bundle_mask(r.val);
+        if(!args.allowjump)
+            bundle_mask(r.val);
         mkinsn("%s *%s", j.val, r.val);
         mkdirective(".bundle_unlock");
     } else {
         mkinsn("movq %s, %%r11", r.val);
         mkdirective(".bundle_lock");
-        bundle_mask("%r11");
+        if(!args.allowjump)
+            bundle_mask("%r11");
         mkinsn("%s *%%r11", j.val);
         mkdirective(".bundle_unlock");
     }
@@ -195,7 +206,8 @@ Ret = 'ret' 'q'? - {
     } else {
         mkinsn("popq %%r11");
         mkdirective(".bundle_lock");
-        bundle_mask("%r11");
+        if(!args.allowjump)
+            bundle_mask("%r11");
         mkinsn("jmpq *%%r11");
         mkdirective(".bundle_unlock");
     }

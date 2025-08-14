@@ -31,6 +31,7 @@ enum {
     ARG_largeguard    = 0x91,
     ARG_zerobase      = 0x92,
     ARG_nocallret     = 0x93,
+    ARG_allowjump     = 0x94,
 };
 
 // options (TODO):
@@ -71,6 +72,7 @@ static struct argp_option options[] = {
     { "large-guard",    ARG_largeguard,    0,      0, "Assume large guard pages" },
     { "zero-base",      ARG_zerobase,      0,      0, "Store zero in base register (used only for testing)" },
     { "no-callret",     ARG_nocallret,     0,      0, "Rewrite all calls and rets with jmps to leave Return-Stack-Buffer (RSB) untouched" },
+    { "allow-jump",     ARG_allowjump,     0,      0, "Do not mask or rewrite indirect calls/jumps" },
     { 0 },
 };
 
@@ -147,6 +149,9 @@ parse_opt(int key, char* arg, struct argp_state* state)
         break;
     case ARG_nocallret:
         args->nocallret = true;
+        break;
+    case ARG_allowjump:
+        args->allowjump = true;
         break;
     case ARG_meter:
         if (strcmp(arg, "branch") == 0)
