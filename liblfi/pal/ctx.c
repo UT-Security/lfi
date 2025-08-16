@@ -54,8 +54,8 @@ static void
 syssetup(struct LFIPlatform* plat, struct Sys* sys, uintptr_t base)
 {
     sys->rtcalls[0] = (uintptr_t) &lfi_syscall_entry;
-    sys->rtcalls[1] = (uintptr_t) &lfi_get_tp;
-    sys->rtcalls[2] = (uintptr_t) &lfi_set_tp;
+    sys->rtcalls[1] = (uintptr_t) 0;
+    sys->rtcalls[2] = (uintptr_t) 0;
     sys->rtcalls[3] = (uintptr_t) &lfi_ret;
     sys->base = base;
     // Only used in sysexternal mode (where there is a syspage per context)
@@ -90,6 +90,7 @@ lfi_ctx_new(struct LFIAddrSpace* as, void* ctxp, bool main)
         .ctxp = ctxp,
         .sys = sys,
         .as = as,
+        .tp = 0,
     };
 
     lfi_regs_init(&ctx->regs, as, ctx);
@@ -104,7 +105,7 @@ EXPORT uint64_t
 lfi_ctx_run(struct LFIContext* ctx, struct LFIAddrSpace* as)
 {
     (void) as;
-    lfi_myctx = ctx;
+    lfi_set_myctx(ctx);
 
     uint64_t ret = lfi_ctx_entry(ctx, &ctx->kstackp);
 
@@ -132,7 +133,7 @@ lfi_ctx_data(struct LFIContext* ctx)
 EXPORT void
 lfi_ctx_exit(struct LFIContext* ctx, uint64_t val)
 {
-    lfi_myctx = NULL;
+    lfi_set_myctx(NULL);
     lfi_asm_ctx_exit(ctx->kstackp, val);
 }
 
@@ -171,9 +172,9 @@ lfi_thread_init(void (*thread_create)(void*), void* pausefn)
 #ifdef SYS_EXTERNAL
     lfi_clonectx->sys->ctxp = (uintptr_t) &lfi_myctx;
 #endif
-    lfi_myctx = lfi_clonectx;
+    lfi_set_myctx(lfi_clonectx);
     thread_create(pausefn);
-    lfi_myctx = lfi_newctx;
+    lfi_set_myctx(lfi_newctx);
     lfi_newctx = NULL;
 }
 
@@ -187,4 +188,11 @@ EXPORT struct LFIContext*
 lfi_get_myctx(void)
 {
     return lfi_myctx;
+}
+
+EXPORT void
+lfi_set_myctx(struct LFIContext* new_ctx) {
+    if (new_ctx)
+        __asm__ __volatile__("wrgsbase %0" : : "r"(new_ctx->tp));
+    lfi_myctx = new_ctx;
 }

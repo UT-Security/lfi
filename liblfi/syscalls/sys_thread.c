@@ -144,12 +144,12 @@ spawn(struct TuxThread* p, uint64_t flags, uint64_t stack, uint64_t ptidp, uint6
         // future.
         struct LFIContext* save_ctx = lfi_myctx;
         threadspawn(p2);
-        lfi_myctx = save_ctx;
+        lfi_set_myctx(save_ctx);
         pal_register_clonectx(p2->p_ctx);
     } else if (p->p_ctx == lfi_clonectx) {
         struct LFIContext* save_ctx = lfi_myctx;
         threadspawn(p2);
-        lfi_myctx = save_ctx;
+        lfi_set_myctx(save_ctx);
         lfi_newctx = p2->p_ctx;
     } else {
         // Actually create a new thread.

@@ -95,6 +95,7 @@ void                    lfi_ctx_tpset(struct LFIContext* ctx, lfiptr_t tp);
 struct LFIAddrSpace*    lfi_ctx_as(struct LFIContext* ctx);
 bool                    lfi_ctx_validptr(struct LFIContext* ctx, lfiptr_t lp);
 struct LFIContext*      lfi_get_myctx(void);
+void                    lfi_set_myctx(struct LFIContext *ctx);
 
 void                    lfi_sys_handler(struct LFIPlatform* plat, SysHandlerFn fn);
 
