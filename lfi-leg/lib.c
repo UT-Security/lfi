@@ -37,6 +37,8 @@ setargs(char* arch, char* sandbox, char* cfi, char* p2size, char* segue)
         args.boxtype = BOX_STORES;
     if (strcmp(sandbox, "bundle-jumps") == 0)
         args.boxtype = BOX_BUNDLEJUMPS;
+    if (strcmp(sandbox, "branches") == 0)
+        args.boxtype = BOX_BRANCHES;
     if (strcmp(sandbox, "none") == 0)
         args.boxtype = BOX_NONE;
     if (strcmp(cfi, "bundle32") == 0)

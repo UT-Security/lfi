@@ -71,7 +71,7 @@ amd64_rewrite(FILE* input, struct output* output)
             passes[i].disabled = true;
         if (args.boxtype < BOX_STORES && passes[i].fn == &amd64_specialpass)
             passes[i].disabled = true;
-        if (args.boxtype < BOX_BUNDLEJUMPS && passes[i].fn == &amd64_branchpass)
+        if (args.boxtype < BOX_BRANCHES && passes[i].fn == &amd64_branchpass)
             passes[i].disabled = true;
         if (args.poc && passes[i].fn == &amd64_pocpass)
             passes[i].disabled = false;

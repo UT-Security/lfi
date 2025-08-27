@@ -162,7 +162,7 @@ bundle_mask(const char* reg)
     } else if (args.boxtype > BOX_BUNDLEJUMPS) {
         mkinsn("andl $0x%s, %s", bundle_mask_constant(), lo(reg));
         mkinsn("orq %%r14, %s", reg);
-    } else {
+    } else if (args.boxtype > BOX_BRANCHES) {
         mkinsn("andq $0xffffffff%s, %s", bundle_mask_constant(), reg);
     }
 }
@@ -277,6 +277,6 @@ extern char* funcret;
 static inline void
 mkfuncret(void)
 {
-    if (args.poc || args.nocall)
+    if (args.poc || args.boxtype >= BOX_BRANCHES)
         mklabel(funcret);
 }

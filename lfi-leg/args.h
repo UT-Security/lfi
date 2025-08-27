@@ -11,10 +11,11 @@ enum cfi {
 enum boxtype {
     BOX_NONE        = 0,
     BOX_SYSCALLS    = 1,
-    BOX_BUNDLEJUMPS = 2,
-    BOX_JUMPS       = 3,
-    BOX_STORES      = 4,
-    BOX_FULL        = 5,
+    BOX_BRANCHES    = 2,
+    BOX_BUNDLEJUMPS = 3,
+    BOX_JUMPS       = 4,
+    BOX_STORES      = 5,
+    BOX_FULL        = 6,
 };
 
 enum meter {
@@ -55,7 +56,7 @@ struct arguments {
     bool syscall;
     bool largeguard;
     bool zerobase;
-    bool nocall;
+    bool usecall;
 };
 
 extern struct arguments args;

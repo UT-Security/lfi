@@ -30,7 +30,7 @@ enum {
     ARG_syscall       = 0x90,
     ARG_largeguard    = 0x91,
     ARG_zerobase      = 0x92,
-    ARG_nocall        = 0x93,
+    ARG_usecall       = 0x93,
 };
 
 // options (TODO):
@@ -70,7 +70,7 @@ static struct argp_option options[] = {
     { "allow-syscall",  ARG_syscall,       0,      0, "Do not rewrite syscalls into host calls" },
     { "large-guard",    ARG_largeguard,    0,      0, "Assume large guard pages" },
     { "zero-base",      ARG_zerobase,      0,      0, "Store zero in base register (used only for testing)" },
-    { "no-call",        ARG_nocall,        0,      0, "Rewrite calls to use jmps" },
+    { "use-call",       ARG_usecall,       0,      0, "Allow call instructions for x86-64" },
     { 0 },
 };
 
@@ -112,6 +112,8 @@ parse_opt(int key, char* arg, struct argp_state* state)
             args->boxtype = BOX_JUMPS;
         else if (strcmp(arg, "bundle-jumps") == 0)
             args->boxtype = BOX_BUNDLEJUMPS;
+        else if (strcmp(arg, "branches") == 0)
+            args->boxtype = BOX_BRANCHES;
         else if (strcmp(arg, "syscalls") == 0)
             args->boxtype = BOX_SYSCALLS;
         else if (strcmp(arg, "none") == 0)
@@ -145,8 +147,8 @@ parse_opt(int key, char* arg, struct argp_state* state)
     case ARG_zerobase:
         args->zerobase = true;
         break;
-    case ARG_nocall:
-        args->nocall = true;
+    case ARG_usecall:
+        args->usecall = true;
         break;
     case ARG_meter:
         if (strcmp(arg, "branch") == 0)
