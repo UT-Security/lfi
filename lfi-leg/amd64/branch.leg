@@ -14,25 +14,19 @@ Top = Branch | BranchMem | CallTLS | CallIndNoSP | CallInd | CallIndMem | Call |
 
 CallIndNoSP = 'call' 'q'? SEP '*' r:XREG_NOSP {
     if (args.usecall) {
-        mkdirective(".bundle_lock");
+        mkdirective(bundle_lock());
         bundle_mask(r.val);
         mkinsn("callq *%s", r.val);
-        mkdirective(".bundle_unlock");
+        mkdirective(bundle_unlock());
         mkdirective(bundle_align());
-        rfree(r);
-    } else if (args.boxtype == BOX_BRANCHES) {
-        mkinsn("lea %sf(%%rip), %%r11", funcret);
-        mkinsn("pushq %%r11");
-        mkinsn("jmpq *%s", r.val);
-        mkfuncret();
         rfree(r);
     } else {
         mkinsn("lea %sf(%%rip), %%r11", funcret);
         mkinsn("pushq %%r11");
-        mkdirective(".bundle_lock");
+        mkdirective(bundle_lock());
         bundle_mask(r.val);
         mkinsn("jmpq *%s", r.val);
-        mkdirective(".bundle_unlock");
+        mkdirective(bundle_unlock());
         mkdirective(bundle_align());
         mkfuncret();
         rfree(r);
@@ -41,27 +35,21 @@ CallIndNoSP = 'call' 'q'? SEP '*' r:XREG_NOSP {
 
 CallInd = 'call' 'q'? SEP '*' r:XREG {
     if(args.usecall) {
-        mkdirective(".bundle_lock");
+        mkdirective(bundle_lock());
         bundle_mask(r.val);
         mkinsn("callq *%s", r.val);
-        mkdirective(".bundle_unlock");
+        mkdirective(bundle_unlock());
         mkdirective(bundle_align());
         rfree(r);
-    } else if (args.boxtype == BOX_BRANCHES) {
-        mkinsn("movq %s, %%r11", r.val);
-        mkinsn("pushq %%rax");
-        mkinsn("lea %sf(%%rip), %%rax", funcret);
-        mkinsn("xchg %%rax, (%%rsp)");
-        mkinsn("jmpq *%%r11");
     } else {
         mkinsn("movq %s, %%r11", r.val);
         mkinsn("pushq %%rax");
         mkinsn("lea %sf(%%rip), %%rax", funcret);
         mkinsn("xchg %%rax, (%%rsp)");
-        mkdirective(".bundle_lock");
+        mkdirective(bundle_lock());
         bundle_mask("%r11");
         mkinsn("jmpq *%%r11");
-        mkdirective(".bundle_unlock");
+        mkdirective(bundle_unlock());
         mkdirective(bundle_align());
         mkfuncret();
         rfree(r);   
@@ -88,28 +76,21 @@ CallIndMem = 'call' 'q'? SEP '*' a:Addr {
     if (args.usecall) {
         if (args.bundlecall)
             mkdirective(bundle_align());
-        mkdirective(".bundle_lock");
+        mkdirective(bundle_lock());
         bundle_mask("%r11");
         bundle_nop_indcall();
         mkinsn("callq *%%r11");
-        mkdirective(".bundle_unlock");
-        mkdirective(bundle_align());
-        
-    } else if (args.boxtype == BOX_BRANCHES) {
-        mkinsn("pushq %%rax");
-        mkinsn("lea %sf(%%rip), %%rax", funcret);
-        mkinsn("xchg %%rax, (%%rsp)");
-        mkinsn("jmpq *%%r11");
-        mkfuncret();
+        mkdirective(bundle_unlock());
+        mkdirective(bundle_align());  
     } else {
         //TODO(abhishek): optimize for Addrs that don't use %rsp.
         mkinsn("pushq %%rax");
         mkinsn("lea %sf(%%rip), %%rax", funcret);
         mkinsn("xchg %%rax, (%%rsp)");
-        mkdirective(".bundle_lock");
+        mkdirective(bundle_lock());
         bundle_mask("%r11");
         mkinsn("jmpq *%%r11");
-        mkdirective(".bundle_unlock");
+        mkdirective(bundle_unlock());
         mkdirective(bundle_align());
         mkfuncret();
     }   
@@ -123,12 +104,6 @@ Call = 'call' 'q'? - rest:ITEM {
         bundle_nop_call();
         mkinsn("callq %s", rest.val);
         mkdirective(bundle_align());
-        rfree(rest);
-    } else if (args.boxtype == BOX_BRANCHES) {
-        mkinsn("lea %sf(%%rip), %%r11", funcret);
-        mkinsn("pushq %%r11");
-        mkinsn("jmp %s", rest.val);
-        mkfuncret();
         rfree(rest);
     } else if (args.poc && args.nopie) {
         mkinsn("push $%sf", funcret);
@@ -199,9 +174,6 @@ JMP = < 'notrack'? - 'jmp' 'q'? > - {
 Ret = 'ret' 'q'? - {
     if (args.useret) {
         mkinsn("ret");
-    } else if (args.boxtype == BOX_BRANCHES) {
-        mkinsn("popq %%r11");
-        mkinsn("jmpq *%%r11");
     } else if (args.singlethread && args.boxtype <= BOX_BUNDLEJUMPS) {
         mkdirective(".bundle_lock");
         mkinsn("andq $0xffffffff%s, (%%rsp)", bundle_mask_constant());
@@ -209,10 +181,10 @@ Ret = 'ret' 'q'? - {
         mkdirective(".bundle_unlock");
     } else {
         mkinsn("popq %%r11");
-        mkdirective(".bundle_lock");
+        mkdirective(bundle_lock());
         bundle_mask("%r11");
         mkinsn("jmpq *%%r11");
-        mkdirective(".bundle_unlock");
+        mkdirective(bundle_unlock());
     }
 }
 
