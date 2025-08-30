@@ -46,6 +46,11 @@ lo(const char* reg)
     return reg;
 }
 
+static bool
+is_addr_norsp(const char* addr) {
+    return strstr(addr, "%rsp") == NULL;
+}
+
 static char*
 rtcall(unsigned offset)
 {
