@@ -9,6 +9,7 @@ lfi_regs_init(struct TuxRegs* regs, struct LFIAddrSpace* as, struct LFIContext* 
     regs->rsp = as->base;
     regs->r15 = 0xffffffffffffffff;
     regs->r13 = (uintptr_t) ctx->sys;
+    regs->r15 = as->size - 1;
 }
 
 EXPORT void

@@ -1,4 +1,4 @@
 [wrap-git]
 url = https://github.com/zyedidia/libboxmap.git
-revision = buddy
+revision = 91cb88892026e100e0f7d1f3a704fe31e0855560
 directory = libboxmap
