@@ -265,6 +265,8 @@ padrewrite(uint8_t* insns, size_t bsz, size_t addr)
                     continue;
                 if (instrs[j].mnemonic == ZYDIS_MNEMONIC_LEA)
                     continue;
+                if (instrs[j].mnemonic == ZYDIS_MNEMONIC_CPUID)
+                    continue;
                 if (instrs[j].mnemonic == ZYDIS_MNEMONIC_NOP) {
                     continue;
                 }
