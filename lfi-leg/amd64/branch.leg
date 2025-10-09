@@ -202,11 +202,25 @@ Ret = 'ret' 'q'? - {
         mkinsn("ret");
         mkdirective(".bundle_unlock");
     } else {
+        mkinsn("pushq %%rax");
+        mkdirective(".bundle_lock");
+        mkinsn("leaq 1024f(%%rip), %%r11");
+        mkinsn("jmpq %s", rtcall(32));
+        mklabel("1024");
+        char* sandboxed = newlabel("sandboxed");
+        mkinsn("cmpq $1, %%rax");
+        mkinsn("je %s", sandboxed);
+        mkinsn("int3");
+        mkdirective(".bundle_unlock");
+        mkdirective(bundle_align());
+        mklabel(sandboxed);
+        mkinsn("popq %%rax");
         mkinsn("popq %%r11");
         mkdirective(bundle_lock());
         bundle_mask("%r11");
         mkinsn("jmpq *%%r11");
         mkdirective(bundle_unlock());
+        free(sandboxed);
     }
 }
 

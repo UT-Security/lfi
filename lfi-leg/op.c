@@ -169,6 +169,12 @@ mkbcc(char* bcc, char* label)
     return op;
 }
 
+char* newlabel(char* label) {    
+     char* ret = xasprintf(".%s%d", label, fixup_count);
+     fixup_count++;
+     return ret;
+}
+
 void
 opremove(struct op* n)
 {

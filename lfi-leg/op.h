@@ -37,6 +37,8 @@ struct op* mkdirective(char* text);
 
 struct op* mkcomment(char* text);
 
+char* newlabel(char* label);
+
 void opremove(struct op* op);
 
 void opfree(struct op* op);
