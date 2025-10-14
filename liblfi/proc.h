@@ -83,6 +83,9 @@ struct Dir {
 #define LINUX_SIGSYS    31
 #define LINUX_NSIG      32
 
+#define LINUX_SIG_DFL   0
+#define LINUX_SIG_IGN   1
+
 struct SigActionEntry {
     bool valid;
     struct SigAction entry;

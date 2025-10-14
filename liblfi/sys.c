@@ -75,7 +75,7 @@ syshandle(struct TuxThread* p, uintptr_t sysno, uintptr_t a0, uintptr_t a1,
 #endif
     SYS(rt_sigaction,      sys_rt_sigaction(proc, a0, a1, a2, a3))
     SYS(rt_sigprocmask,    sys_rt_sigprocmask(proc, a0, a1, a2, a3))
-    SYS(rt_sigreturn,      sys_rt_sigreturn(proc))
+    SYS(rt_sigreturn,      sys_rt_sigreturn(p))
     SYS(uname,             sys_uname(proc, a0))
     SYS(sysinfo,           sys_sysinfo(proc, a0))
     SYS(getrlimit,         sys_getrlimit(proc, a0, a1))

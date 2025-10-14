@@ -133,7 +133,8 @@ lfi_ctx_data(struct LFIContext* ctx)
 EXPORT void
 lfi_ctx_exit(struct LFIContext* ctx, uint64_t val)
 {
-    lfi_set_myctx(NULL);
+    // Due to signals, we should not set this to NULL on exit.
+    /* lfi_set_myctx(NULL); */
     lfi_asm_ctx_exit(ctx->kstackp, val);
 }
 

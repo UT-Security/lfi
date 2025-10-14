@@ -227,6 +227,12 @@ procsetup(struct TuxThread* p, uint8_t* prog, size_t progsz, uint8_t* interp, si
     return true;
 }
 
+struct TuxThread *
+lfi_tux_get_thread(void)
+{
+    return (struct TuxThread *) lfi_get_myctx()->ctxp;
+}
+
 int
 procmapany(struct TuxProc* p, size_t size, int prot, int flags, int fd,
         off_t offset, lfiptr_t* o_mapstart)

@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <signal.h>
 
 #include "lfi_tux.h"
 #include "lfi.h"
@@ -107,6 +108,23 @@ mb(size_t x)
     return x * 1024 * 1024;
 }
 
+static void
+on_signal(int sig, siginfo_t *si, void *ucontext)
+{
+    struct TuxThread *p = lfi_tux_get_thread();
+    lfi_tux_on_signal(p, sig, si, ucontext);
+}
+
+static void
+register_signals(struct sigaction *act)
+{
+    struct sigaction oldact;
+    if (sigaction(SIGSEGV, act, &oldact))
+        perror("sigaction");
+    if (sigaction(SIGILL, act, NULL))
+        perror("sigaction");
+}
+
 int
 main(int argc, char** argv)
 {
@@ -143,6 +161,26 @@ main(int argc, char** argv)
         fprintf(stderr, "error opening: %s: %s\n", args.inputs[0], strerror(errno));
         return 1;
     }
+
+    stack_t ss;
+
+    ss.ss_sp = malloc(SIGSTKSZ);
+    if (ss.ss_sp == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+
+    ss.ss_size = SIGSTKSZ;
+    ss.ss_flags = 0;
+    if (sigaltstack(&ss, NULL) == -1) {
+        perror("sigaltstack");
+        exit(EXIT_FAILURE);
+    }
+
+    struct sigaction act = {0};
+    act.sa_flags = SA_SIGINFO | SA_ONSTACK;
+    act.sa_sigaction = &on_signal;
+    register_signals(&act);
 
     struct TuxThread* p = lfi_tux_proc_new(tux, f.data, f.size, args.ninputs, &args.inputs[0]);
     if (!p) {

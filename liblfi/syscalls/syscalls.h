@@ -142,7 +142,7 @@ int sys_rt_sigaction(struct TuxProc* p, int sig, int64_t act, int64_t old, uint6
 
 int sys_rt_sigprocmask(struct TuxProc* p, int how, int64_t setaddr, int64_t oldsetaddr, uint64_t sigsetsize);
 
-int sys_rt_sigreturn(struct TuxProc* p);
+int sys_rt_sigreturn(struct TuxThread* p);
 
 int sys_sched_getaffinity(struct TuxProc* p, int32_t pid, uint64_t cpusetsize, int64_t maskaddr);
 

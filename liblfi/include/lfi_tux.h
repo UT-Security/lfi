@@ -60,7 +60,9 @@ struct LFIContext* lfi_tux_ctx(struct TuxThread* p);
 
 void lfi_tux_libinit(struct Tux* tux, bool val);
 
-bool lfi_tux_on_signal(struct TuxThread *p, int signum, int code, siginfo_t *si, void *ucontext);
+bool lfi_tux_on_signal(struct TuxThread *p, int signum, siginfo_t *si, void *ucontext);
+
+struct TuxThread *lfi_tux_get_thread(void);
 
 struct LFILibCalls {
     // The lfi_ctx function has a non-standard calling convention, and should
