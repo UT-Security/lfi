@@ -45,3 +45,7 @@ mov 14(%rdi), %rsp
 mov %gs:14(%edi), %esp
 orq %r14, %rsp
 .bundle_unlock
+-----
+mov 14(%rdi), %r14
+>>>
+.bundle_align_mode 5
