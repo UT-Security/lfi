@@ -38,7 +38,8 @@ procnewempty(void)
     if (!p)
         goto err;
     p->proc = proc;
-    p->tid = nexttid();
+    p->proc->pid = nexttid();
+    p->tid = p->proc->pid;
     return p;
 
 err:

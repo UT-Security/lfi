@@ -18,7 +18,7 @@ syshandle(struct TuxThread* p, uintptr_t sysno, uintptr_t a0, uintptr_t a1,
 
     uintptr_t r = -TUX_ENOSYS;
     switch (sysno) {
-    SYS(getpid,            0)
+    SYS(getpid,            sys_getpid(proc))
     SYS(write,             sys_write(proc, a0, a1, a2))
     SYS(read,              sys_read(proc, a0, a1, a2))
     SYS(lseek,             sys_lseek(proc, a0, a1, a2))

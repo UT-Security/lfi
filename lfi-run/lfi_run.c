@@ -149,7 +149,7 @@ main(int argc, char** argv)
         .poc = args.poc,
     });
 
-    args.opts.stacksize = mb(2);
+    args.opts.stacksize = mb(3);
 
     if (args.gdb)
         args.opts.gdbfile = args.inputs[0];

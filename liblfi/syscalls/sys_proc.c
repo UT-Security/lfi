@@ -4,6 +4,13 @@
 
 #include "syscalls/syscalls.h"
 
+int
+sys_getpid(struct TuxProc* p)
+{
+    return p->pid;
+}
+
+
 static void
 clearctid(struct TuxThread* p)
 {

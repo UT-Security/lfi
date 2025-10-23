@@ -68,6 +68,8 @@ procpath(struct TuxProc* p, lfiptr_t pathp)
 
 ssize_t sys_write(struct TuxProc* p, int fd, lfiptr_t bufp, size_t size);
 
+int sys_getpid(struct TuxProc* p);
+
 uintptr_t sys_exit(struct TuxThread* p, uint64_t val);
 
 uintptr_t sys_brk(struct TuxProc* p, lfiptr_t addr);

@@ -109,6 +109,7 @@ struct TuxProc {
 
     struct Tux* tux;
     struct LFIAddrSpaceInfo p_info;
+    int pid;
 };
 
 struct TuxThread {

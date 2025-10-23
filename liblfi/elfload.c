@@ -19,7 +19,7 @@ enum {
 };
 
 enum {
-    STACKSIZE = 2ULL * 1024 * 1024,
+    STACKSIZE = 3ULL * 1024 * 1024,
     CODEMAX   = 1ULL * 1024 * 1024 * 1024,
 };
 

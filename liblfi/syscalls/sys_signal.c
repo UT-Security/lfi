@@ -88,14 +88,15 @@ lfi_tux_on_signal(struct TuxThread *p, int sig, siginfo_t *si, void *ucontext)
     // skip: X87 state
 
     struct TuxRegs *regs = lfi_ctx_regs(p->p_ctx);
-    uintptr_t sp = regs->rsp;
+    //TODO: make sure sp is valid/sandboxed.
+    uintptr_t sp = host_regs[REG_RSP];
     sp -= kRedzoneSize;
 
     sp = ROUNDDOWN(sp, 16);
     sp -= sizeof(sf);
     assert((sp & 15) == 8);
 
-    WARN(p->proc->tux, "restorer: %lx", sighand.restorer);
+    //WARN(p->proc->tux, "restorer: %lx", sighand.restorer);
     put64(sf.ret, sighand.restorer);
     put64(sf.uc.fpstate, sp + offsetof(struct SignalFrame, fp));
 
