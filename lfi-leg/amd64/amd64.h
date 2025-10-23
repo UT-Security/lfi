@@ -285,3 +285,5 @@ mkfuncret(void)
     if (args.poc || args.boxtype >= BOX_BRANCHES)
         mklabel(funcret);
 }
+
+extern char* newlabel(char* label);

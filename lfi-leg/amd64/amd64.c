@@ -4,6 +4,7 @@
 #include "args.h"
 #include "op.h"
 #include "output.h"
+#include "util.h"
 
 bool amd64_parseinit(FILE*);
 
@@ -122,4 +123,12 @@ amd64_rewrite(FILE* input, struct output* output)
     opfreeall();
 
     return true;
+}
+
+static int label_count = 0;
+
+char* newlabel(char* label) {
+    char* ret = xasprintf(".%s%d", label, label_count);
+    label_count++;
+    return ret;
 }
