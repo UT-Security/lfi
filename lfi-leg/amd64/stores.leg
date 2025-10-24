@@ -26,13 +26,15 @@ Top = (Stos | Movs | Cmp | Xchg | Lea | Div | Triple2 | StoreH | Store | Access)
 
 Stos = s:STOS rest:REMAINDER {
     char* sandboxed = newlabel("sandboxed");
+    mkinsn("pushfq");
     mkinsn("movq %%rdi, %%r11");
-    mkinsn("pext %%r15, %%r11, %%r11");
-    mkinsn("leaq (%%r14, %%r11), %%r11");
+    mkinsn("andq %%r15, %%r11");
+    mkinsn("orq %%r14, %%r11");
     mkinsn("cmpq %%rdi, %%r11");
     mkinsn("je %s", sandboxed);
     mkinsn("int3");
     mklabel(sandboxed);
+    mkinsn("popfq");
     free(sandboxed);
 
     mkdirective(".bundle_lock");
@@ -51,13 +53,15 @@ STOS = < ('rep' [ \t\r\n;]+)? 'stos' [qlb] > &(SEP | !.) {
 
 Movs = m:MOVS rest:REMAINDER {
     char* sandboxed = newlabel("sandboxed");
+    mkinsn("pushfq");
     mkinsn("movq %%rdi, %%r11");
-    mkinsn("pext %%r15, %%r11, %%r11");
-    mkinsn("leaq (%%r14, %%r11), %%r11");
+    mkinsn("andq %%r15, %%r11");
+    mkinsn("orq %%r14, %%r11");
     mkinsn("cmpq %%rdi, %%r11");
     mkinsn("je %s", sandboxed);
     mkinsn("int3");
     mklabel(sandboxed);
+    mkinsn("popfq");
     free(sandboxed);
 
     mkdirective(".bundle_lock");
@@ -113,14 +117,16 @@ DIV = < ('div' [bhwlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } 
 Xchg = m:XCHG a:Addr COMMA r:ITEM {
     char* sandboxed = newlabel("sandboxed");
     mkinsn("leaq %s, %%r11", a.unmod);
+    mkinsn("pushfq");
     mkinsn("pushq %%r11");
-    mkinsn("pext %%r15, %%r11, %%r11");
-    mkinsn("leaq (%%r14, %%r11), %%r11");
+    mkinsn("andq %%r15, %%r11");
+    mkinsn("orq %%r14, %%r11");
     mkinsn("cmpq %%r11, 0(%%rsp)");
     mkinsn("je %s", sandboxed);
     mkinsn("int3");
     mklabel(sandboxed);
     mkinsn("popq %%r11");
+    mkinsn("popfq");
     free(sandboxed);
 
     mkguards(a);
@@ -134,14 +140,16 @@ XCHG = < ('xchg' [bhwlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) 
 Access = m:NAME a:Addr {
     char* sandboxed = newlabel("sandboxed");
     mkinsn("leaq %s, %%r11", a.unmod);
+    mkinsn("pushfq");
     mkinsn("pushq %%r11");
-    mkinsn("pext %%r15, %%r11, %%r11");
-    mkinsn("leaq (%%r14, %%r11), %%r11");
+    mkinsn("andq %%r15, %%r11");
+    mkinsn("orq %%r14, %%r11");
     mkinsn("cmpq %%r11, 0(%%rsp)");
     mkinsn("je %s", sandboxed);
     mkinsn("int3");
     mklabel(sandboxed);
     mkinsn("popq %%r11");
+    mkinsn("popfq");
     free(sandboxed);
 
     mkguards(a);
@@ -151,6 +159,20 @@ Access = m:NAME a:Addr {
 }
 
 StoreH = m:NAME r:HREG COMMA a:AddrH {
+    char* sandboxed = newlabel("sandboxed");
+    mkinsn("leaq %s, %%r11", a.unmod);
+    mkinsn("pushfq");
+    mkinsn("pushq %%r11");
+    mkinsn("andq %%r15, %%r11");
+    mkinsn("orq %%r14, %%r11");
+    mkinsn("cmpq %%r11, 0(%%rsp)");
+    mkinsn("je %s", sandboxed);
+    mkinsn("int3");
+    mklabel(sandboxed);
+    mkinsn("popq %%r11");
+    mkinsn("popfq");
+    free(sandboxed);
+
     mkguards(a);
     mkinsn("%s %s, %s", m.val, r.val, a.val);
     mkpost(a);
@@ -158,6 +180,20 @@ StoreH = m:NAME r:HREG COMMA a:AddrH {
 }
 
 Store = m:NAME r:ITEM COMMA a:Addr {
+    char* sandboxed = newlabel("sandboxed");
+    mkinsn("leaq %s, %%r11", a.unmod);
+    mkinsn("pushfq");
+    mkinsn("pushq %%r11");
+    mkinsn("andq %%r15, %%r11");
+    mkinsn("orq %%r14, %%r11");
+    mkinsn("cmpq %%r11, 0(%%rsp)");
+    mkinsn("je %s", sandboxed);
+    mkinsn("int3");
+    mklabel(sandboxed);
+    mkinsn("popq %%r11");
+    mkinsn("popfq");
+    free(sandboxed);
+
     mkguards(a);
     mkinsn("%s %s, %s", m.val, r.val, a.val);
     mkpost(a);
@@ -165,6 +201,20 @@ Store = m:NAME r:ITEM COMMA a:Addr {
 }
 
 Triple2 = m:NAME r1:ITEM COMMA r2:ITEM COMMA a:Addr {
+    char* sandboxed = newlabel("sandboxed");
+    mkinsn("leaq %s, %%r11", a.unmod);
+    mkinsn("pushfq");
+    mkinsn("pushq %%r11");
+    mkinsn("andq %%r15, %%r11");
+    mkinsn("orq %%r14, %%r11");
+    mkinsn("cmpq %%r11, 0(%%rsp)");
+    mkinsn("je %s", sandboxed);
+    mkinsn("int3");
+    mklabel(sandboxed);
+    mkinsn("popq %%r11");
+    mkinsn("popfq");
+    free(sandboxed);
+
     mkguards(a);
     mkinsn("%s %s, %s, %s", m.val, r1.val, r2.val, a.val);
     mkpost(a);
