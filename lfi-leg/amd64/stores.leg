@@ -22,7 +22,7 @@ mask(const char* reg)
 }
 %}
 
-Top = (Stos | Movs | Cmp | Xchg | Lea | Triple2 | StoreH | Store | Access) !.
+Top = (Stos | Movs | Cmp | Xchg | Lea | Div | Triple2 | StoreH | Store | Access) !.
 
 Stos = s:STOS rest:REMAINDER {
     mkdirective(".bundle_lock");
@@ -76,6 +76,19 @@ Cmp = m:CMPTEST r:ITEM COMMA a:Addr {
 }
 
 CMPTEST = < (('cmp' | 'test') [bhwlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
+
+Div = m:DIV a:Addr {
+    if (args.boxtype < BOX_FULL) {
+        mkinsn("%s %s", m.val, a.unmod);
+    } else {
+        mkguards(a);
+        mkinsn("%s %s", m.val, a.val);
+        mkpost(a);
+    }
+    rfree(m); rfree(a);
+}
+
+DIV = < ('div' [bhwlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 Xchg = m:XCHG a:Addr COMMA r:ITEM {
     mkguards(a);
