@@ -25,6 +25,16 @@ mask(const char* reg)
 Top = (Stos | Movs | Cmp | Xchg | Lea | Div | Triple2 | StoreH | Store | Access) !.
 
 Stos = s:STOS rest:REMAINDER {
+    char* sandboxed = newlabel("sandboxed");
+    mkinsn("movq %%rdi, %%r11");
+    mkinsn("pext %%r15, %%r11, %%r11");
+    mkinsn("leaq (%%r14, %%r11), %%r11");
+    mkinsn("cmpq %%rdi, %%r11");
+    mkinsn("je %s", sandboxed);
+    mkinsn("int3");
+    mklabel(sandboxed);
+    free(sandboxed);
+
     mkdirective(".bundle_lock");
     mask("%rdi");
     mkinsn("%s%s", s.val, rest.val);
@@ -40,6 +50,16 @@ STOS = < ('rep' [ \t\r\n;]+)? 'stos' [qlb] > &(SEP | !.) {
 }
 
 Movs = m:MOVS rest:REMAINDER {
+    char* sandboxed = newlabel("sandboxed");
+    mkinsn("movq %%rdi, %%r11");
+    mkinsn("pext %%r15, %%r11, %%r11");
+    mkinsn("leaq (%%r14, %%r11), %%r11");
+    mkinsn("cmpq %%rdi, %%r11");
+    mkinsn("je %s", sandboxed);
+    mkinsn("int3");
+    mklabel(sandboxed);
+    free(sandboxed);
+
     mkdirective(".bundle_lock");
     mask("%rdi");
     if (args.boxtype >= BOX_FULL)
@@ -91,6 +111,18 @@ Div = m:DIV a:Addr {
 DIV = < ('div' [bhwlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 Xchg = m:XCHG a:Addr COMMA r:ITEM {
+    char* sandboxed = newlabel("sandboxed");
+    mkinsn("leaq %s, %%r11", a.unmod);
+    mkinsn("pushq %%r11");
+    mkinsn("pext %%r15, %%r11, %%r11");
+    mkinsn("leaq (%%r14, %%r11), %%r11");
+    mkinsn("cmpq %%r11, 0(%%rsp)");
+    mkinsn("je %s", sandboxed);
+    mkinsn("int3");
+    mklabel(sandboxed);
+    mkinsn("popq %%r11");
+    free(sandboxed);
+
     mkguards(a);
     mkinsn("%s %s, %s", m.val, a.val, r.val);
     mkpost(a);
@@ -100,6 +132,18 @@ Xchg = m:XCHG a:Addr COMMA r:ITEM {
 XCHG = < ('xchg' [bhwlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 Access = m:NAME a:Addr {
+    char* sandboxed = newlabel("sandboxed");
+    mkinsn("leaq %s, %%r11", a.unmod);
+    mkinsn("pushq %%r11");
+    mkinsn("pext %%r15, %%r11, %%r11");
+    mkinsn("leaq (%%r14, %%r11), %%r11");
+    mkinsn("cmpq %%r11, 0(%%rsp)");
+    mkinsn("je %s", sandboxed);
+    mkinsn("int3");
+    mklabel(sandboxed);
+    mkinsn("popq %%r11");
+    free(sandboxed);
+
     mkguards(a);
     mkinsn("%s %s", m.val, a.val);
     mkpost(a);
