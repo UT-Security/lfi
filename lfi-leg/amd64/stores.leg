@@ -26,9 +26,7 @@ Top = (Stos | Movs | Cmp | Xchg | Lea | Div | Triple2 | StoreH | Store | Access)
 
 Stos = s:STOS rest:REMAINDER {
     mkinsn("movq %%rdi, %%r15");
-    mkinsn("leaq 1024f(%%rip), %%r11");
-    mkinsn("jmpq %s", rtcall(32));
-    mklabel("1024");
+    mkinsn("//lfi:rtcall_debug_mask");
 
     mkdirective(".bundle_lock");
     mask("%rdi");
@@ -46,9 +44,7 @@ STOS = < ('rep' [ \t\r\n;]+)? 'stos' [qlb] > &(SEP | !.) {
 
 Movs = m:MOVS rest:REMAINDER {
     mkinsn("movq %%rdi, %%r15");
-    mkinsn("leaq 1024f(%%rip), %%r11");
-    mkinsn("jmpq %s", rtcall(32));
-    mklabel("1024");
+    mkinsn("//lfi:rtcall_debug_mask");
 
     mkdirective(".bundle_lock");
     mask("%rdi");
@@ -102,9 +98,7 @@ DIV = < ('div' [bhwlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } 
 
 Xchg = m:XCHG a:Addr COMMA r:ITEM {
     mkinsn("leaq %s, %%r15", a.unmod);
-    mkinsn("leaq 1024f(%%rip), %%r11");
-    mkinsn("jmpq %s", rtcall(32));
-    mklabel("1024");
+    mkinsn("//lfi:rtcall_debug_mask");
 
     mkguards(a);
     mkinsn("%s %s, %s", m.val, a.val, r.val);
@@ -116,9 +110,7 @@ XCHG = < ('xchg' [bhwlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) 
 
 Access = m:NAME a:Addr {
     mkinsn("leaq %s, %%r15", a.unmod);
-    mkinsn("leaq 1024f(%%rip), %%r11");
-    mkinsn("jmpq %s", rtcall(32));
-    mklabel("1024");
+    mkinsn("//lfi:rtcall_debug_mask");
 
     mkguards(a);
     mkinsn("%s %s", m.val, a.val);
@@ -128,9 +120,7 @@ Access = m:NAME a:Addr {
 
 StoreH = m:NAME r:HREG COMMA a:AddrH {
     mkinsn("leaq %s, %%r15", a.unmod);
-    mkinsn("leaq 1024f(%%rip), %%r11");
-    mkinsn("jmpq %s", rtcall(32));
-    mklabel("1024");
+    mkinsn("//lfi:rtcall_debug_mask");
 
     mkguards(a);
     mkinsn("%s %s, %s", m.val, r.val, a.val);
@@ -140,9 +130,7 @@ StoreH = m:NAME r:HREG COMMA a:AddrH {
 
 Store = m:NAME r:ITEM COMMA a:Addr {
     mkinsn("leaq %s, %%r15", a.unmod);
-    mkinsn("leaq 1024f(%%rip), %%r11");
-    mkinsn("jmpq %s", rtcall(32));
-    mklabel("1024");
+    mkinsn("//lfi:rtcall_debug_mask");
 
     mkguards(a);
     mkinsn("%s %s, %s", m.val, r.val, a.val);
@@ -152,9 +140,7 @@ Store = m:NAME r:ITEM COMMA a:Addr {
 
 Triple2 = m:NAME r1:ITEM COMMA r2:ITEM COMMA a:Addr {
     mkinsn("leaq %s, %%r15", a.unmod);
-    mkinsn("leaq 1024f(%%rip), %%r11");
-    mkinsn("jmpq %s", rtcall(32));
-    mklabel("1024");
+    mkinsn("//lfi:rtcall_debug_mask");
 
     mkguards(a);
     mkinsn("%s %s, %s, %s", m.val, r1.val, r2.val, a.val);
