@@ -122,6 +122,44 @@ lfi_set_tp:
     int3
 
 .p2align 4
+.global lfi_debug_mask
+lfi_debug_mask:
+    // Load LFI context into %r14
+    mov lfi_myctx@gottpoff(%rip), %r14
+    mov %fs:(%r14), %r14
+
+    // Swap to application stack
+    mov %rsp, 24(%r14)
+    mov (%r14), %rsp
+
+    pushq %r11 // save return address
+    pushfq // save flags
+    pushq %r14 // save ctx
+
+    movq %r15, %r11
+
+    mov PROC_REGS+8*15(%r14), %r15
+    mov PROC_REGS+8*14(%r14), %r14
+
+    pushq %r11
+    andq %r15, %r11
+    orq %r15, %r11
+    cmpq 0(%rsp), %r11
+    je .lfi_debug_mask_ok
+    int3
+
+.lfi_debug_mask_ok:
+    popq %r11 // pop pushed %r11
+    popq %r14 // pop ctx
+    popfq // restore flags
+    popq %r11 // pop return address
+
+    mov 24(%r14), %rsp // restore sandbox stack
+    mov PROC_REGS+8*14(%r14), %r14 // restore sandbox base
+    jmp *%r11
+    int3
+
+.p2align 4
 .global lfi_syscall_entry
 lfi_syscall_entry:
     SAVE_PARTIAL_REGS

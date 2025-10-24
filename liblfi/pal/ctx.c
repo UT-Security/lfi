@@ -50,6 +50,9 @@ extern void lfi_set_tp(void)
 extern void lfi_ret(void)
     asm ("lfi_ret");
 
+extern void lfi_debug_mask(void)
+    asm ("lfi_debug_mask");
+
 static void
 syssetup(struct LFIPlatform* plat, struct Sys* sys, uintptr_t base)
 {
@@ -57,6 +60,9 @@ syssetup(struct LFIPlatform* plat, struct Sys* sys, uintptr_t base)
     sys->rtcalls[1] = (uintptr_t) 0;
     sys->rtcalls[2] = (uintptr_t) 0;
     sys->rtcalls[3] = (uintptr_t) &lfi_ret;
+
+    sys->rtcalls[4] = (uintptr_t) &lfi_debug_mask;
+
     sys->base = base;
     // Only used in sysexternal mode (where there is a syspage per context)
     if (plat->opts.sysexternal)
