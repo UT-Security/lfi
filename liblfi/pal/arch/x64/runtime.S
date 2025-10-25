@@ -160,6 +160,24 @@ lfi_debug_mask:
     int3
 
 .p2align 4
+.global lfi_debug_check
+lfi_debug_check:
+    mov lfi_myctx@gottpoff(%rip), %r14
+    movq %fs:(%r14), %r14
+    mov 16(%r14), %r14
+
+    test %r14, %r14
+    jnz .lfi_debug_check_ok
+    int3
+
+.lfi_debug_check_ok:
+    mov lfi_myctx@gottpoff(%rip), %r14
+    movq %fs:(%r14), %r14
+    mov PROC_REGS+8*14(%r14), %r14
+    jmp *%r11
+    int3
+
+.p2align 4
 .global lfi_syscall_entry
 lfi_syscall_entry:
     SAVE_PARTIAL_REGS

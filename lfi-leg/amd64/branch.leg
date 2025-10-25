@@ -239,6 +239,9 @@ JMP = < 'notrack'? - 'jmp' 'q'? > - {
 }
 
 Ret = 'ret' 'q'? - {
+
+    mkinsn("//lfi:rtcall_debug_check");
+
     if (args.useret) {
         mkinsn("ret");
     } else if (args.singlethread && args.boxtype <= BOX_BUNDLEJUMPS) {

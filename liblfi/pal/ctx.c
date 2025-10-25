@@ -52,6 +52,8 @@ extern void lfi_ret(void)
 
 extern void lfi_debug_mask(void)
     asm ("lfi_debug_mask");
+extern void lfi_debug_check(void)
+    asm ("lfi_debug_check");
 
 static void
 syssetup(struct LFIPlatform* plat, struct Sys* sys, uintptr_t base)
@@ -62,6 +64,7 @@ syssetup(struct LFIPlatform* plat, struct Sys* sys, uintptr_t base)
     sys->rtcalls[3] = (uintptr_t) &lfi_ret;
 
     sys->rtcalls[4] = (uintptr_t) &lfi_debug_mask;
+    sys->rtcalls[5] = (uintptr_t) &lfi_debug_check;
 
     sys->base = base;
     // Only used in sysexternal mode (where there is a syspage per context)
@@ -97,6 +100,9 @@ lfi_ctx_new(struct LFIAddrSpace* as, void* ctxp, bool main)
         .sys = sys,
         .as = as,
         .tp = 0,
+
+        .debug_flag = 0,
+        .debug_scratch = 0,
     };
 
     lfi_regs_init(&ctx->regs, as, ctx);

@@ -12,7 +12,7 @@
 }                                              \
 %}
 
-Top = Syscall | Retcall | Debugmaskcall
+Top = Syscall | Retcall | Debugmaskcall | Debugcheckcall
 
 Syscall = 'syscall' - {
     mkdirective(bundle_lock());
@@ -34,6 +34,14 @@ Debugmaskcall = ('//lfi:' | '#lfi:') 'rtcall_debug_mask' - {
     mkdirective(bundle_lock());
     mkinsn("leaq 1024f(%%rip), %%r11");
     mkinsn("jmpq %s", rtcall(32));
+    mklabel("1024");
+    mkdirective(bundle_unlock());
+}
+
+Debugcheckcall = ('//lfi:' | '#lfi:') 'rtcall_debug_check' - {
+    mkdirective(bundle_lock());
+    mkinsn("leaq 1024f(%%rip), %%r11");
+    mkinsn("jmpq %s", rtcall(40));
     mklabel("1024");
     mkdirective(bundle_unlock());
 }
