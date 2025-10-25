@@ -143,7 +143,7 @@ lfi_debug_mask:
 
     pushq %r11
     andq %r15, %r11
-    orq %r15, %r11
+    orq %r14, %r11
     cmpq 0(%rsp), %r11
     je .lfi_debug_mask_ok
     int3

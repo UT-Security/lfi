@@ -57,6 +57,8 @@ struct arguments {
     bool largeguard;
     bool zerobase;
     bool usecall;
+
+    bool debugstores;
 };
 
 extern struct arguments args;

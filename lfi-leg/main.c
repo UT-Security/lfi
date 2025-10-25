@@ -31,6 +31,8 @@ enum {
     ARG_largeguard    = 0x91,
     ARG_zerobase      = 0x92,
     ARG_usecall       = 0x93,
+
+    ARG_debugstores   = 0x100,
 };
 
 // options (TODO):
@@ -71,6 +73,8 @@ static struct argp_option options[] = {
     { "large-guard",    ARG_largeguard,    0,      0, "Assume large guard pages" },
     { "zero-base",      ARG_zerobase,      0,      0, "Store zero in base register (used only for testing)" },
     { "use-call",       ARG_usecall,       0,      0, "Allow call instructions for x86-64" },
+    
+    { "debug-stores",   ARG_debugstores,   0,      0, "Debug store masking" },
     { 0 },
 };
 
@@ -212,6 +216,11 @@ parse_opt(int key, char* arg, struct argp_state* state)
     case ARGP_KEY_ARG:
         args->input = arg;
         break;
+
+    case ARG_debugstores:
+        args->debugstores = true;
+        break;
+
     default:
         return ARGP_ERR_UNKNOWN;
     }
