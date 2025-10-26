@@ -47,6 +47,13 @@ lo(const char* reg)
 }
 
 static bool
+read_access(const char *insn) {
+  if (strncmp(insn, "div", strlen("div")) == 0)
+    return true;
+  return false;
+}
+
+static bool
 is_addr_norsp(const char* addr) {
     return strstr(addr, "%rsp") == NULL;
 }

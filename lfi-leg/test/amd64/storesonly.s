@@ -69,3 +69,8 @@ movl %edi, %edi
 leaq (%r14, %rdi), %rdi
 movsq
 .bundle_unlock
+------
+div (%rax)
+>>>
+.bundle_align_mode 5
+div (%rax)

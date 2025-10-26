@@ -87,9 +87,13 @@ Xchg = m:XCHG a:Addr COMMA r:ITEM {
 XCHG = < ('xchg' [bhwlq]?) > - { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 
 Access = m:NAME a:Addr {
-    mkguards(a);
-    mkinsn("%s %s", m.val, a.val);
-    mkpost(a);
+    if (read_access(m.val) && args.boxtype < BOX_FULL) {
+        mkinsn("%s %s", m.val, a.unmod);
+    } else {
+        mkguards(a);
+        mkinsn("%s %s", m.val, a.val);
+        mkpost(a);
+    }
     rfree(m); rfree(a);
 }
 
