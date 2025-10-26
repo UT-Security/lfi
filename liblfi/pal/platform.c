@@ -51,5 +51,9 @@ EXPORT void
 lfi_syscall_handler(struct LFIContext* ctx)
 {
     assert(ctx->as->plat->syshandler && "platform does not have a system call handler");
+    assert(ctx->debug_flag == 1);
+    ctx->debug_flag = 0;
     ctx->as->plat->syshandler(ctx);
+    assert(ctx->debug_flag == 0);
+    ctx->debug_flag = 1;
 }

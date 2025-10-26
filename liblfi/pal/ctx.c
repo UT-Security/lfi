@@ -119,6 +119,8 @@ lfi_ctx_run(struct LFIContext* ctx, struct LFIAddrSpace* as)
     (void) as;
     lfi_set_myctx(ctx);
 
+    assert(ctx->debug_flag == 0);
+    ctx->debug_flag = 1;
     uint64_t ret = lfi_ctx_entry(ctx, &ctx->kstackp);
 
     return ret;
@@ -147,12 +149,14 @@ lfi_ctx_exit(struct LFIContext* ctx, uint64_t val)
 {
     // Due to signals, we should not set this to NULL on exit.
     /* lfi_set_myctx(NULL); */
+    assert(ctx->debug_flag == 0);
     lfi_asm_ctx_exit(ctx->kstackp, val);
 }
 
 EXPORT void
 lfi_ctx_pause(struct LFIContext* ctx, uint64_t val)
 {
+    assert(ctx->debug_flag == 0);
     lfi_asm_ctx_exit(ctx->kstackp, val);
 }
 

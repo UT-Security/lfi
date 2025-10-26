@@ -81,6 +81,14 @@ lfi_asm_ctx_exit:
 lfi_ret:
 	movq lfi_myctx@gottpoff(%rip), %r11
 	movq %fs:(%r11), %r11
+
+    movq 16(%r11), %r14
+    test %r14, %r14
+    jnz .lfi_ret_check_ok
+    int3
+.lfi_ret_check_ok:
+    movq $0, 16(%r11)
+    
 	movq 0(%r11), %rsp // kstackp
     // restore user sp to its initial value
     popq %rbp
