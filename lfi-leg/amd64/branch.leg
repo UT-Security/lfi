@@ -204,7 +204,6 @@ Ret = 'ret' 'q'? - {
     } else {
         mkinsn("popq %%r11");
         mkdirective(bundle_lock());
-        bundle_mask("%r11");
         mkinsn("jmpq *%%r11");
         mkdirective(bundle_unlock());
     }
