@@ -154,7 +154,7 @@ lfi_as_mapat(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, size_t realsiz
 EXPORT int
 lfi_as_mprotect(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, size_t realsize, int prot)
 {
-    if(size > realsize) {
+    if(size > realsize && ((prot & LFI_PROT_EXEC) != 0)) {
         memset((char*)(addr + realsize), 0xcc, size - realsize);
     }
     assert(l2p(as, addr) >= as->minaddr && l2p(as, addr) + size <= as->maxaddr);
