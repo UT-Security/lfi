@@ -18,6 +18,8 @@ c_args_hardened = [
   '-Werror=implicit',
   '-Werror=incompatible-pointer-types',
   '-Werror=int-conversion',
+  '-ggdb',
+  '-O0',
 ]
 
 c_args_warnings = [
