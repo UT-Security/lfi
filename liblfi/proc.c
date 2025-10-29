@@ -221,7 +221,7 @@ procsetup(struct TuxThread* p, uint8_t* prog, size_t progsz, uint8_t* interp, si
 
     // Reserve the brk region.
     const int mapflags = LFI_MAP_PRIVATE | LFI_MAP_ANONYMOUS;
-    lfiptr_t brkregion = lfi_as_mapat(p->proc->p_as, p->proc->brkbase, TUX_BRKMAXSIZE, LFI_PROT_NONE, mapflags, NULL, 0);
+    lfiptr_t brkregion = lfi_as_mapat(p->proc->p_as, p->proc->brkbase, TUX_BRKMAXSIZE, TUX_BRKMAXSIZE, LFI_PROT_NONE, mapflags, NULL, 0);
     if (brkregion == (lfiptr_t) -1)
         return false;
 
@@ -251,7 +251,7 @@ procmapany(struct TuxProc* p, size_t size, int prot, int flags, int fd,
         }
     }
     LOCK_WITH_DEFER(&p->lk_as, lk_as);
-    lfiptr_t addr = lfi_as_mapany(p->p_as, size, prot, flags, hf, offset);
+    lfiptr_t addr = lfi_as_mapany(p->p_as, size, size, prot, flags, hf, offset);
     if (addr == (lfiptr_t) -1)
         return -TUX_EINVAL;
     *o_mapstart = (uintptr_t) addr;
@@ -275,7 +275,7 @@ procmapat(struct TuxProc* p, lfiptr_t start, size_t size, int prot, int flags,
         }
     }
     LOCK_WITH_DEFER(&p->lk_as, lk_as);
-    lfiptr_t addr = lfi_as_mapat(p->p_as, start, size, prot, flags, hf, offset);
+    lfiptr_t addr = lfi_as_mapat(p->p_as, start, size, size, prot, flags, hf, offset);
     if (addr == (lfiptr_t) -1)
         return -TUX_EINVAL;
     return 0;

@@ -32,10 +32,10 @@ sys_brk(struct TuxProc* p, lfiptr_t addr)
         LOCK_WITH_DEFER(&p->lk_as, lk_as);
         lfiptr_t map;
         if (p->brksize == 0) {
-            map = lfi_as_mapat(p->p_as, p->brkbase, newsize, mapprot, mapflags, NULL, 0);
+            map = lfi_as_mapat(p->p_as, p->brkbase, newsize, newsize, mapprot, mapflags, NULL, 0);
         } else {
             lfiptr_t next = ceilp(p->brkbase + p->brksize, p->tux->opts.pagesize);
-            map = lfi_as_mapat(p->p_as, next, newsize - p->brksize, mapprot, mapflags, NULL, 0);
+            map = lfi_as_mapat(p->p_as, next, newsize - p->brksize, newsize - p->brksize, mapprot, mapflags, NULL, 0);
         }
         if (map == (lfiptr_t) -1)
             return -1;
@@ -87,7 +87,7 @@ sys_mprotect(struct TuxProc* p, lfiptr_t addrp, size_t length, int prot)
     if (!procvalid(p, addrp))
         return -1;
     LOCK_WITH_DEFER(&p->lk_as, lk_as);
-    return lfi_as_mprotect(p->p_as, addrp, length, prot);
+    return lfi_as_mprotect(p->p_as, addrp, length, length, prot);
 }
 
 int

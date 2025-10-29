@@ -73,10 +73,10 @@ typedef void (*SysHandlerFn)(struct LFIContext* ctx);
 struct LFIAddrSpace*    lfi_as_new(struct LFIPlatform* plat);
 struct LFIAddrSpaceInfo lfi_as_info(struct LFIAddrSpace* as);
 
-lfiptr_t                lfi_as_mapat(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot, int flags, struct HostFile* f, off_t off);
-lfiptr_t                lfi_as_mapany(struct LFIAddrSpace* as, size_t size, int prot, int flags, struct HostFile* f, off_t off);
+lfiptr_t                lfi_as_mapat(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, size_t realsize, int prot, int flags, struct HostFile* f, off_t off);
+lfiptr_t                lfi_as_mapany(struct LFIAddrSpace* as, size_t size, size_t realsize, int prot, int flags, struct HostFile* f, off_t off);
 int                     lfi_as_munmap(struct LFIAddrSpace* as, lfiptr_t addr, size_t size);
-int                     lfi_as_mprotect(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot);
+int                     lfi_as_mprotect(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, size_t realsize, int prot);
 void                    lfi_as_copyfm(struct LFIAddrSpace* as, void* dst, lfiptr_t src, size_t size);
 void                    lfi_as_copyto(struct LFIAddrSpace* as, lfiptr_t dst, void* src, size_t size);
 void                    lfi_as_free(struct LFIAddrSpace* as);

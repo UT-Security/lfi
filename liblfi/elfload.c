@@ -55,7 +55,7 @@ static bool
 bufreadelfseg(struct LFIAddrSpace* as, uintptr_t start, uintptr_t offset, uintptr_t end,
         size_t p_offset, size_t filesz, int prot, buf_t buf, size_t pagesize)
 {
-    lfiptr_t p = lfi_as_mapat(as, p2l(as, start), p2l(as, end - start), LFI_PROT_READ | LFI_PROT_WRITE, MAPANON, NULL, 0);
+    lfiptr_t p = lfi_as_mapat(as, p2l(as, start), p2l(as, end - start), filesz, LFI_PROT_READ | LFI_PROT_WRITE, MAPANON, NULL, 0);
     if (p == (lfiptr_t) -1) {
         return false;
     }
@@ -69,7 +69,7 @@ bufreadelfseg(struct LFIAddrSpace* as, uintptr_t start, uintptr_t offset, uintpt
     if (n != (ssize_t) filesz) {
         return false;
     }
-    if (lfi_as_mprotect(as, p2l(as, start), p2l(as, end - start), prot) < 0) {
+    if (lfi_as_mprotect(as, p2l(as, start), p2l(as, end - start), filesz, prot) < 0) {
         return false;
     }
     return true;
@@ -195,7 +195,7 @@ lfi_proc_loadelf(struct LFIAddrSpace* as, uint8_t* progdat, size_t progsz, uint8
 
     size_t stacksize = opts.stacksize;
 
-    lfiptr_t stack = lfi_as_mapat(as, lfi_as_toptr(as, (char*) info.maxaddr - stacksize), stacksize, LFI_PROT_READ | LFI_PROT_WRITE, MAPANON, NULL, 0);
+    lfiptr_t stack = lfi_as_mapat(as, lfi_as_toptr(as, (char*) info.maxaddr - stacksize), stacksize, stacksize, LFI_PROT_READ | LFI_PROT_WRITE, MAPANON, NULL, 0);
     if (stack == (lfiptr_t) -1)
         goto err;
 

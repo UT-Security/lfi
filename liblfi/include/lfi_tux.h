@@ -77,8 +77,8 @@ struct LFILibCalls {
     uint64_t             (*lfi_tux_proc_run)(struct TuxThread*);
     void                 (*lfi_thread_init)(void (*)(void*), void*);
     struct HostFile*     (*lfi_host_fdopen)(int);
-    lfiptr_t             (*lfi_as_mapany)(struct LFIAddrSpace* as, size_t size, int prot, int flags, struct HostFile* f, off_t off);
-    int                  (*lfi_as_mprotect)(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot);
+    lfiptr_t             (*lfi_as_mapany)(struct LFIAddrSpace* as, size_t size, size_t realsize, int prot, int flags, struct HostFile* f, off_t off);
+    int                  (*lfi_as_mprotect)(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, size_t realsize, int prot);
     struct LFIAddrSpace* (*lfi_ctx_as)(struct LFIContext* ctx);
 };
 
