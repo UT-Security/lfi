@@ -36,6 +36,7 @@ struct TuxOptions {
     bool poc;
     struct TuxFS fs;
     char* gdbfile;
+    bool (*on_sigaction)(int signo);
 };
 
 struct LFIPlatform;

@@ -163,6 +163,10 @@ sys_rt_sigaction(struct TuxProc* p, int sig, int64_t act, int64_t old, uint64_t 
         return -TUX_EINVAL;
     }
 
+    if (p->tux->opts.on_sigaction && !p->tux->opts.on_sigaction(sig)) {
+      return -TUX_EINVAL;
+    }
+
     uint8_t* ab = procbufalign(p, act, sizeof(struct SigAction), alignof(struct SigAction));
     if (!ab)
         return -TUX_EFAULT;
