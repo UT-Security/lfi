@@ -15,13 +15,13 @@ lfi_new_plat(struct LFIPlatOptions opts)
         return NULL;
 
     struct BoxMap* bm = boxmap_new((struct BoxMapOptions) {
-        .minalign = gb(256),
-        .maxalign = gb(256),
-        .guardsize = gb(4),
+        .minalign = gb(128),
+        .maxalign = gb(128),
+        .guardsize = gb(0),
     });
     if (!bm)
         goto err1;
-    if (!boxmap_reserve(bm, gb(1024)))
+    if (!boxmap_reserve(bm, gb(256)))
         goto err2;
 
     *plat = (struct LFIPlatform) {

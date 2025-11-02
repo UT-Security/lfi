@@ -13,7 +13,7 @@
 static size_t
 guardsize(void)
 {
-    return (size_t)4 * 1024 * 1024 * 1024;
+    return (size_t)2 * 1024 * 1024 * 1024;
 }
 
 EXPORT struct LFIAddrSpace*
