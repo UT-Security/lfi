@@ -163,7 +163,9 @@ static void chkmem(struct Verifier *v, FdInstr *instr) {
                 continue;
             if(storesonly && 
                 (FD_TYPE(instr) == FDI_CMP ||
-                 FD_TYPE(instr) == FDI_TEST)
+                 FD_TYPE(instr) == FDI_TEST ||
+                 FD_TYPE(instr) == FDI_PUSH ||
+                 FD_TYPE(instr) == FDI_LDMXCSR)
                 )
                 continue;
             if (FD_OP_BASE(instr, i) != FD_REG_SP &&
@@ -179,6 +181,7 @@ static void chkmod(struct Verifier *v, FdInstr *instr) {
     if (FD_TYPE(instr) == FDI_NOP)
         return;
 
+    if(FD_TYPE(instr) == FDI_PUSH) return;
     for (size_t i = 0; i < 4; i++) {
         if (FD_OP_TYPE(instr, i) == FD_OT_REG && reserved(instr, i))
             verr(v, instr, "modification of reserved register");

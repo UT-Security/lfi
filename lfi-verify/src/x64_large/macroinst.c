@@ -489,6 +489,8 @@ static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t
     int64_t guardsize = v->opts->guardsize;
     FdInstr i_mov, i_and, i_or;
     size_t count = 0;
+    bool storesonly = v->opts->box == LFI_BOX_STORES;
+
     if (fd_decode(&buf[0], size, 64, 0, &i_mov) < 0)
         return (struct MacroInst){-1, 0};
     count += i_mov.size;
@@ -516,43 +518,46 @@ static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t
         return (struct MacroInst){-1, 0};
     count += i_or.size;
 
-    // allow addl, subl, lea, add movl
+    // allow addl, subl, lea, add movl, pop
     if (FD_TYPE(&i_mov) != FDI_MOV &&
             FD_TYPE(&i_mov) != FDI_ADD &&
             FD_TYPE(&i_mov) != FDI_AND &&
             FD_TYPE(&i_mov) != FDI_SUB &&
-            FD_TYPE(&i_mov) != FDI_LEA)
+            FD_TYPE(&i_mov) != FDI_LEA &&
+            FD_TYPE(&i_mov) != FDI_POP)
         return (struct MacroInst){-1, 0};
 
+    //TODO: this does not work for read sandbox
     if (FD_OP_TYPE(&i_mov, 0) != FD_OT_REG ||
             FD_OP_SIZE(&i_mov, 0) != 8 ||
             FD_OP_REG(&i_mov, 0) != FD_REG_SP)
         return (struct MacroInst){-1, 0};
-    if(FD_TYPE(&i_mov) != FDI_LEA) {
-        if(FD_TYPE(&i_and) != FDI_AND ||
-            !assert_reg(&i_and, 0, FD_REG_SP, 8) ||
-            !assert_reg(&i_and, 1, FD_REG_R15, 8))
-            return (struct MacroInst){-1, 0};
-        if(FD_TYPE(&i_or) != FDI_OR ||
-            !assert_reg(&i_or, 0, FD_REG_SP, 8) ||
-            !assert_reg(&i_or, 1, FD_REG_R14, 8))
-            return (struct MacroInst){-1, 0};
-    } else {
-        if(FD_TYPE(&i_and) != FDI_PEXT ||
-                !assert_reg(&i_and, 0, FD_REG_SP, 8) ||
-                !assert_reg(&i_and, 1, FD_REG_SP, 8) ||
-                !assert_reg(&i_and, 2, FD_REG_R15, 8))
-            return (struct MacroInst){-1, 0};
 
-        if(FD_TYPE(&i_or) != FDI_LEA ||
-                !assert_reg(&i_or, 0, FD_REG_SP, 8) ||
-                FD_OP_TYPE(&i_or, 1) != FD_OT_MEM ||
-                FD_OP_BASE(&i_or, 1) != FD_REG_SP ||
-                FD_OP_INDEX(&i_or, 1) != FD_REG_R14 ||
-                FD_OP_DISP(&i_or, 1) != 0 ||
-                FD_OP_SCALE(&i_or, 1) != 0)
-            return (struct MacroInst){-1, 0};
-    }
+    if(FD_TYPE(&i_and) == FDI_AND &&
+        assert_reg(&i_and, 0, FD_REG_SP, 8) &&
+        assert_reg(&i_and, 1, FD_REG_R15, 8) &&
+        FD_TYPE(&i_or) == FDI_OR &&
+        assert_reg(&i_or, 0, FD_REG_SP, 8) &&
+        assert_reg(&i_or, 1, FD_REG_R14, 8))
+        return (struct MacroInst){count, 3};
+
+    if(FD_TYPE(&i_mov) != FDI_LEA)
+        return (struct MacroInst){-1, 0};
+
+    if(FD_TYPE(&i_and) != FDI_PEXT ||
+            !assert_reg(&i_and, 0, FD_REG_SP, 8) ||
+            !assert_reg(&i_and, 1, FD_REG_SP, 8) ||
+            !assert_reg(&i_and, 2, FD_REG_R15, 8))
+        return (struct MacroInst){-1, 0};
+
+    if(FD_TYPE(&i_or) != FDI_LEA ||
+            !assert_reg(&i_or, 0, FD_REG_SP, 8) ||
+            FD_OP_TYPE(&i_or, 1) != FD_OT_MEM ||
+            FD_OP_BASE(&i_or, 1) != FD_REG_SP ||
+            FD_OP_INDEX(&i_or, 1) != FD_REG_R14 ||
+            FD_OP_DISP(&i_or, 1) != 0 ||
+            FD_OP_SCALE(&i_or, 1) != 0)
+        return (struct MacroInst){-1, 0};
 
     return (struct MacroInst){count, 3};
 }

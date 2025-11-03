@@ -941,7 +941,7 @@ case FDI_LDMXCSR:
 case FDI_LEA:
 // case FDI_LEAVE:
 // case FDI_LES:
-// case FDI_LFENCE:
+ case FDI_LFENCE:
 // case FDI_LFS:
 // case FDI_LGDT:
 // case FDI_LGS:
@@ -1514,7 +1514,7 @@ case FDI_UD2:
 // case FDI_VCVTSS2SI:
 // case FDI_VCVTTPD2DQ:
 // case FDI_VCVTTPS2DQ:
-// case FDI_VCVTTSD2SI:
+ case FDI_VCVTTSD2SI:
 // case FDI_VCVTTSS2SI:
 // case FDI_VDIVPD:
 // case FDI_VDIVPS:
@@ -1640,7 +1640,7 @@ case FDI_UD2:
 // case FDI_VMOVNTPD:
 // case FDI_VMOVNTPS:
  case FDI_VMOVQ:
-// case FDI_VMOVSD:
+ case FDI_VMOVSD:
 // case FDI_VMOVSHDUP:
 // case FDI_VMOVSLDUP:
 // case FDI_VMOVSS:
@@ -1840,7 +1840,7 @@ case FDI_UD2:
 // case FDI_VSUBSS:
 // case FDI_VTESTPD:
 // case FDI_VTESTPS:
-// case FDI_VUCOMISD:
+ case FDI_VUCOMISD:
 // case FDI_VUCOMISS:
 // case FDI_VUNPCKHPD:
 // case FDI_VUNPCKHPS:
