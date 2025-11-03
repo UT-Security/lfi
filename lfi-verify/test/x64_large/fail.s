@@ -157,3 +157,15 @@ pext %r15, %r14, %r14
 mov %rdi, (%r14, %r14)
 ---
 lock xchg (%rdi), %rsi
+---
+fldenv (%rax)
+---
+ldmxcsr (%rax)
+---
+stmxcsr (%rax)
+---
+vinserti128 $1, 16(%rax), %ymm0, %ymm0
+---
+vmovaps %ymm0, (%rax) {%k1}
+---
+vmovaps (%rax), %ymm0
