@@ -235,6 +235,7 @@ static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t 
     // andq %r15, %rX
     // andq $0xffffffffffffffe0, %rX
     // orq %r14, %rX
+    // NOP
     // callq *%rX
 
     FdInstr i_and, i_and2, i_or, i_jmp;
@@ -248,10 +249,16 @@ static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t 
     if (fd_decode(&buf[offset], size - offset, 64, 0, &i_or) < 0)
         return (struct MacroInst){-1, 0};
     offset += i_or.size;
+    size_t icount = 3;
     //TODO: why did this eat nops continuously in the previous code?
-    if (fd_decode(&buf[offset], size - offset, 64, 0, &i_jmp) < 0)
-        return (struct MacroInst){-1, 0};
-    offset += i_jmp.size;
+    while(offset < bundlesize) {
+        if (fd_decode(&buf[offset], size - offset, 64, 0, &i_jmp) < 0)
+            return (struct MacroInst){-1, 0};
+        offset += i_jmp.size;
+        icount++;
+        if (FD_TYPE(&i_jmp) != FDI_NOP)
+            break;
+    }
 
     if (FD_TYPE(&i_and) != FDI_AND ||
             !assert_reg(&i_and, 1, FD_REG_R15, 8) ||
@@ -281,7 +288,7 @@ static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t 
         )
         return (struct MacroInst){-1, 0};
 
-    return (struct MacroInst){offset, 4};
+    return (struct MacroInst){offset, icount};
 }
 
 bool check_unsafe_store(FdInstr* inst, uint32_t op, uint32_t reg, int64_t guard) {
