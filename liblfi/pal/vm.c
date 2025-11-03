@@ -97,12 +97,16 @@ mapverify(struct LFIAddrSpace* as, uintptr_t start, size_t size, size_t realsize
     else if ((prot & LFI_PROT_WRITE) != 0)
         return -1;
     int r;
-    if ((r = mapmem(as, start, size, LFI_PROT_READ, flags, hf, off)) < 0)
+    if ((r = mapmem(as, start, size, LFI_PROT_READ | LFI_PROT_WRITE, flags, hf, off)) < 0)
         return r;
     assert(as->plat);
     if(size > realsize) {
         memset((char*)(start+realsize), 0xcc, size - realsize);
     }
+    if(hf == 0) {
+        memset((char*)start, 0xcc, size);
+    }
+    host_mprotect((void*)start, size, LFI_PROT_READ);
     if (protectverify(start, size, prot, as->plat->verifier) < 0) {
         host_munmap((void*) start, size);
         return -1;
@@ -154,8 +158,15 @@ lfi_as_mapat(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, size_t realsiz
 EXPORT int
 lfi_as_mprotect(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, size_t realsize, int prot)
 {
-    if(size > realsize && ((prot & LFI_PROT_EXEC) != 0)) {
-        memset((char*)(addr + realsize), 0xcc, size - realsize);
+    if((prot & LFI_PROT_EXEC) != 0) {
+        if(size > realsize) {
+            memset((char*)(addr + realsize), 0xcc, size - realsize);
+        } else {
+            uint32_t pagesize = as->plat->opts.pagesize;
+            if(size % pagesize) {
+                memset((char*)(addr + size), 0xcc, pagesize - (size % pagesize));
+            }
+        }
     }
     assert(l2p(as, addr) >= as->minaddr && l2p(as, addr) + size <= as->maxaddr);
 
