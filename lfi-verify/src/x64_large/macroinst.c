@@ -300,6 +300,15 @@ bool check_unsafe_store(FdInstr* inst, uint32_t op, uint32_t reg, int64_t guard)
         FD_OP_DISP(inst, op) < -guard;
 }
 
+bool unsafe_store_any(FdInstr* inst, uint32_t op, uint32_t reg, int64_t guard) {
+    return
+        FD_OP_BASE(inst, op) != reg ||
+        FD_OP_INDEX(inst, op) != FD_REG_NONE ||
+        FD_OP_SCALE(inst, op) != 0 ||
+        FD_OP_DISP(inst, op) > guard ||
+        FD_OP_DISP(inst, op) < -guard;
+}
+
 static struct MacroInst macroinst_store_pext(struct Verifier *v, uint8_t *buf, size_t size) {
     // note: for  SIB, the actual address will be moved
     // into r11 beforehand
@@ -385,6 +394,64 @@ static struct MacroInst macroinst_store_pext_multi(struct Verifier *v, uint8_t *
             FD_OP_DISP(&i_store, 0) > guardsize ||
             FD_OP_DISP(&i_store, 0) < -guardsize)
         return (struct MacroInst){-1, 0};
+
+    return (struct MacroInst){offset, 3};
+}
+
+static struct MacroInst macroinst_store_three(struct Verifier *v, uint8_t *buf, size_t size) {
+    // andq %r15, %rX
+    // or %r14, %rX
+    // mov <anything>, (%rX, off)
+    
+    bool storesonly = v->opts->box == LFI_BOX_STORES;
+    int64_t guardsize = v->opts->guardsize;
+    FdInstr i_and, i_or, i_store;
+    size_t offset = 0;
+    if (fd_decode(&buf[offset], size - offset, 64, 0, &i_and) < 0)
+        return (struct MacroInst){-1, 0};
+    offset += i_and.size;
+    
+    if (fd_decode(&buf[offset], size - offset, 64, 0, &i_or) < 0)
+        return (struct MacroInst){-1, 0};
+    offset += i_or.size;
+
+    if (fd_decode(&buf[offset], size - offset, 64, 0, &i_store) < 0) {
+        return (struct MacroInst){-1, 0};
+    }
+    offset += i_store.size;
+
+    if (FD_TYPE(&i_and) != FDI_AND ||
+            FD_OP_TYPE(&i_and, 0) != FD_OT_REG ||
+            FD_OP_TYPE(&i_and, 1) != FD_OT_REG ||
+            reserved(&i_and, 0) || 
+            FD_OP_REG(&i_and, 1) != FD_REG_R15)
+        return (struct MacroInst){-1, 0};
+
+    uint32_t targ = FD_OP_REG(&i_and, 0);
+
+    if (FD_TYPE(&i_or) != FDI_OR ||
+            FD_OP_TYPE(&i_or, 0) != FD_OT_REG ||
+            FD_OP_TYPE(&i_or, 1) != FD_OT_REG ||
+            FD_OP_REG(&i_or, 0) != targ ||
+            FD_OP_REG(&i_or, 1) != FD_REG_R14)
+        return (struct MacroInst){-1, 0};
+    //we actually don't really care if the 
+    //store instruction is a mov. We just care
+    //that it only writes to the memory address specified
+    //in operand 0
+    if(FD_TYPE(&i_store) == FDI_XCHG ||
+        FD_TYPE(&i_store) == FDI_CMPXCHG) {
+        if((FD_OP_TYPE(&i_store, 0) == FD_OT_MEM &&
+            unsafe_store_any(&i_store, 0, targ, guardsize)) ||
+            (FD_OP_TYPE(&i_store, 1) == FD_OT_MEM &&
+                unsafe_store_any(&i_store, 1, targ, guardsize))
+           )
+            return (struct MacroInst){-1, 0};
+    } else {
+        if (FD_OP_TYPE(&i_store, 0) != FD_OT_MEM ||
+            unsafe_store_any(&i_store, 0, targ, guardsize))
+            return (struct MacroInst){-1, 0};
+    }
 
     return (struct MacroInst){offset, 3};
 }
@@ -575,6 +642,7 @@ static MacroFn mfns[] = {
     macroinst_load,
     macroinst_store_pext,
     macroinst_store_two,
+    macroinst_store_three,
     macroinst_store_pext_multi
 };
 
