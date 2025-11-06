@@ -235,7 +235,7 @@ static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t 
     // andq %r15, %rX
     // andq $0xffffffffffffffe0, %rX
     // orq %r14, %rX
-    // NOP
+    // NOP*
     // callq *%rX
 
     FdInstr i_and, i_and2, i_or, i_jmp;
@@ -289,6 +289,33 @@ static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t 
         return (struct MacroInst){-1, 0};
 
     return (struct MacroInst){offset, icount};
+}
+
+static struct MacroInst macroinst_hlt(struct Verifier *v, uint8_t *buf, size_t size) {
+    // for spidermonkey, data will sometimes be stored in code section
+    // we solve that by beginning each bundle of data with an hlt instruction
+    // this is safe since we have that all jumps are bundle-aligned, or we'll manually
+    // check that the jump target is safe
+    // hlt
+    // anything you want
+    FdInstr i_halt, i_any;
+    int64_t guardsize = v->opts->guardsize;
+    size_t count = 0;
+    size_t icount = 1;
+    if(fd_decode(buf, size, 64, 0, &i_halt) < 0)
+        return (struct MacroInst){-1, 0};
+
+    if(FD_TYPE(&i_halt) != FDI_HLT)
+        return (struct MacroInst){-1, 0};
+
+    count += i_halt.size;
+    while(count < (guardsize - (v->addr % guardsize))) {
+        if(fd_decode(buf, size - count, 64, 0, &i_any) < 0)
+            return (struct MacroInst){-1, 0};
+        count += i_any.size;
+        icount++;
+    }
+    return (struct MacroInst){count, icount};
 }
 
 bool check_unsafe_store(FdInstr* inst, uint32_t op, uint32_t reg, int64_t guard) {
