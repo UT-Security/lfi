@@ -220,7 +220,7 @@ static bool alreadyChecked(struct Verifier *v, struct VerifierWork* cur,
         if(*target % v->bundlesize == 0) {
             return true;
         }
-        while(cur != nullptr) {
+        while(cur != 0) {
             if(cur->start == *target) {
                 return true;
             }
@@ -254,7 +254,7 @@ struct VerifierWork* make_work(struct Verifier *v, int64_t target, uint8_t* buf,
     vw->sz = ins_to_verify;
     vw->cur = buf - (v->addr - v->base) + (target - v->base);
     vw->remaining = realsize;
-    vw->next = nullptr;
+    vw->next = 0;
     return vw;
 }
 
@@ -295,7 +295,7 @@ struct VerifierWork* process_work(struct Verifier *v, struct VerifierWork* vw) {
         count += mi.size;
     }
     v->addr = old_addr;
-    return nullptr;
+    return 0;
 }
 
 static void chkunaligned(struct Verifier *v, int64_t target, uint8_t* buf, size_t size) {
@@ -304,7 +304,7 @@ static void chkunaligned(struct Verifier *v, int64_t target, uint8_t* buf, size_
      * reach an address that is bundle-aligned
      */
     struct VerifierWork* head = make_work(v, target, buf, size);
-    while(head != nullptr) {
+    while(head != 0) {
         struct VerifierWork* temp = process_work(v, head);
         if(temp) {
             temp->next = head;
