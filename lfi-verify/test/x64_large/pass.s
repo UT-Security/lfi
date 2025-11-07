@@ -150,3 +150,7 @@ jmp unaligned
 ---
 pext %r15, %rdx, %rbp
 lock cmpxchgb %cl, (%r14, %rbp)
+---
+hlt
+.byte 0xde 
+.byte 0xad

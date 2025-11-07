@@ -847,7 +847,7 @@ case FDI_HLT:
 // case FDI_HRESET:
 case FDI_IDIV:
 case FDI_IMUL:
-// case FDI_IN:
+ case FDI_IN:
 case FDI_INC:
 // case FDI_INCSSP:
 // case FDI_INS:

@@ -299,7 +299,7 @@ static struct MacroInst macroinst_hlt(struct Verifier *v, uint8_t *buf, size_t s
     // hlt
     // anything you want
     FdInstr i_halt, i_any;
-    int64_t guardsize = v->opts->guardsize;
+    int64_t bundlesize = v->bundlesize;
     size_t count = 0;
     size_t icount = 1;
     if(fd_decode(buf, size, 64, 0, &i_halt) < 0)
@@ -309,13 +309,16 @@ static struct MacroInst macroinst_hlt(struct Verifier *v, uint8_t *buf, size_t s
         return (struct MacroInst){-1, 0};
 
     count += i_halt.size;
-    while(count < (guardsize - (v->addr % guardsize))) {
-        if(fd_decode(buf, size - count, 64, 0, &i_any) < 0)
-            return (struct MacroInst){-1, 0};
-        count += i_any.size;
-        icount++;
+    // we just skip over the rest of the instructions, up to size
+    if((v->addr + count) % bundlesize) {
+        size_t rest = bundlesize - ((v->addr + count) % bundlesize);
+        if(size - count < rest) {
+            count += (size - count);
+        } else {
+            count += rest;
+        }
     }
-    return (struct MacroInst){count, icount};
+    return (struct MacroInst){count, 1};
 }
 
 bool check_unsafe_store(FdInstr* inst, uint32_t op, uint32_t reg, int64_t guard) {
@@ -670,7 +673,8 @@ static MacroFn mfns[] = {
     macroinst_store_pext,
     macroinst_store_two,
     macroinst_store_three,
-    macroinst_store_pext_multi
+    macroinst_store_pext_multi,
+    macroinst_hlt
 };
 
 static struct MacroInst macroinst(struct Verifier *v, uint8_t *buf, size_t size) {

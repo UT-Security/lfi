@@ -272,6 +272,7 @@ struct VerifierWork* process_work(struct Verifier *v, struct VerifierWork* vw) {
         int len = fd_decode(&buf[count], size-count, 64, 0, &cur);
         if(len < 0) {
             verrmin(v, "%lx: unknown instruction", v->addr);
+            exit(-1);
         }
         if(alreadyChecked(v, vw, &cur, &next_target)) {
             mi.size = len;
@@ -338,7 +339,8 @@ static void vchkins(struct Verifier *v, uint8_t* buf, size_t size, struct MacroI
         int ret = fd_decode(buf, size, 64, 0, &instr);
         if (ret < 0) {
             verrmin(v, "%lx: unknown instruction", v->addr);
-            return;
+            exit(-1);
+            //return;
         }
         mi->size = ret;
         mi->ninstr = 1;
