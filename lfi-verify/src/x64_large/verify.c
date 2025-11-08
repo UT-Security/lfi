@@ -165,7 +165,9 @@ static void chkmem(struct Verifier *v, FdInstr *instr) {
                 (FD_TYPE(instr) == FDI_CMP ||
                  FD_TYPE(instr) == FDI_TEST ||
                  FD_TYPE(instr) == FDI_PUSH ||
-                 FD_TYPE(instr) == FDI_LDMXCSR)
+                 FD_TYPE(instr) == FDI_LDMXCSR ||
+                 FD_TYPE(instr) == FDI_DIV ||
+                 FD_TYPE(instr) == FDI_BT)
                 )
                 continue;
             if (FD_OP_BASE(instr, i) != FD_REG_SP &&

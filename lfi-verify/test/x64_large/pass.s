@@ -154,3 +154,9 @@ lock cmpxchgb %cl, (%r14, %rbp)
 hlt
 .byte 0xde 
 .byte 0xad
+---
+// flags: --sandbox=stores
+divq 0x14(%rbp)
+---
+// flags: --sandbox=stores
+btq %rax, (%rbx)
