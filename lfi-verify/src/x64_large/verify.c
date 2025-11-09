@@ -319,7 +319,7 @@ static void chkunaligned(struct Verifier *v, int64_t target, uint8_t* buf, size_
     }
 }
 
-static void chkbranch(struct Verifier *v, FdInstr *instr, uint8_t* buf, size_t size) {
+static bool chkbranch(struct Verifier *v, FdInstr *instr, uint8_t* buf, size_t size) {
     int64_t target;
     bool indirect, cond;
     bool branch = branchinfo(v, instr, &target, &indirect, &cond);
@@ -331,10 +331,12 @@ static void chkbranch(struct Verifier *v, FdInstr *instr, uint8_t* buf, size_t s
     } else if (branch && indirect) {
         verr(v, instr, "invalid indirect branch");
     }
+    return branch && !cond;
 }
 
-
+// returns false if we're at an unconditional branch
 static void vchkins(struct Verifier *v, uint8_t* buf, size_t size, struct MacroInst* mi) {
+    size_t bundlesize = v->bundlesize;
     *mi = macroinst(v, buf, size);
     if (mi->size < 0) {
         FdInstr instr;
@@ -347,12 +349,21 @@ static void vchkins(struct Verifier *v, uint8_t* buf, size_t size, struct MacroI
         mi->size = ret;
         mi->ninstr = 1;
 
-        if (!okmnem(v, &instr))
+        if (!okmnem(v, &instr)) {
             verr(v, &instr, "illegal instruction");
+        }
 
-        chkbranch(v, &instr, buf, size);
         chkmem(v, &instr);
         chkmod(v, &instr);
+        if(chkbranch(v, &instr, buf, size)) {
+            //skip over the rest of the instructions
+            size_t bundle_off = (bundlesize - (v->addr % bundlesize));
+            if(bundle_off > size) {
+                mi->size = size;
+            } else {
+                mi->size = (bundlesize - (v->addr % bundlesize));
+            }
+        }
     }
 }
 
