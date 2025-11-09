@@ -216,9 +216,11 @@ struct VerifierWork {
 };
 
 static bool alreadyChecked(struct Verifier *v, struct VerifierWork* cur, 
-    FdInstr* ins, uint64_t* target) {
+    FdInstr* ins, uint64_t* target, bool* b_and_uncond) {
     bool indirect, cond;
-    if(branchinfo(v, ins, target, &indirect, &cond) && !indirect) {
+    bool isbranch = branchinfo(v, ins, target, &indirect, &cond);
+    *b_and_uncond = isbranch && !cond;
+    if(isbranch && !indirect) {
         if(*target % v->bundlesize == 0) {
             return true;
         }
@@ -266,6 +268,7 @@ struct VerifierWork* process_work(struct Verifier *v, struct VerifierWork* vw) {
     uint8_t* buf = vw->cur;
     uint64_t next_target = 0;
     struct MacroInst mi;
+    bool b_and_uncond = false;
     FdInstr cur;
     //we need to set v->addr here or branch calculations will be misaligned
     uint64_t old_addr = v->addr;
@@ -276,7 +279,7 @@ struct VerifierWork* process_work(struct Verifier *v, struct VerifierWork* vw) {
             verrmin(v, "%lx: unknown instruction", v->addr);
             exit(-1);
         }
-        if(alreadyChecked(v, vw, &cur, &next_target)) {
+        if(alreadyChecked(v, vw, &cur, &next_target, &b_and_uncond)) {
             mi.size = len;
         } else {
             if(next_target) {
@@ -284,7 +287,11 @@ struct VerifierWork* process_work(struct Verifier *v, struct VerifierWork* vw) {
                 struct VerifierWork* ret = 
                     make_work(v, next_target, &buf[count], vw->remaining);
                 vw->cur = buf + count + len;
-                vw->sz -= (count + len);
+                if(b_and_uncond) {
+                    vw->sz = 0;
+                } else {
+                    vw->sz -= (count + len);
+                }
                 vw->remaining -= (count + len);
                 vw->cur_addr = v->addr + len;
                 v->addr = old_addr;
@@ -295,6 +302,7 @@ struct VerifierWork* process_work(struct Verifier *v, struct VerifierWork* vw) {
         }
         v->addr += mi.size;
         count += mi.size;
+        if(b_and_uncond) break;
     }
     v->addr = old_addr;
     return 0;
