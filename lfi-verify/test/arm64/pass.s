@@ -1,13 +1,13 @@
-ldr x0, [x28]
+ldr x0, [x18]
 ---
-add x28, x27, w0, uxtw
+add x18, x21, w0, uxtw
 ---
-ldr x0, [x27, w0, uxtw]
+ldr x0, [x21, w0, uxtw]
 ---
 b foo
 foo:
 ---
-br x28
+br x18
 ---
 ret
 ---
@@ -20,17 +20,17 @@ ldr x0, [sp], #16
 ---
 ldr x0, [sp, 16]!
 ---
-add sp, x27, w0, uxtw
+add sp, x21, w0, uxtw
 ---
 nop
 ---
-ldr x0, [x28, #4096]
+ldr x0, [x18, #4096]
 ---
-str x0, [x28, #4096]
+str x0, [x18, #4096]
 ---
-ld4 { v29.2s, v30.2s, v31.2s, v0.2s }, [x28]
+ld4 { v29.2s, v30.2s, v31.2s, v0.2s }, [x18]
 ---
-brk #0x281a
+brk #0x181a
 ---
 str w28, [sp, #0x3a38]
 ---
@@ -46,35 +46,26 @@ stp s24, s9, [sp], #-0x10
 ---
 ands x16, x30, #0x8f8f8f8f8f8f8f8f
 ---
-str q0, [x28, #55696]
+str q0, [x18, #55696]
 ---
 stp x29, x30, [sp], #16
 ---
-ldr x30, [x27]
+ldr x30, [x21]
 ---
-ldr x30, [x27, #8]
+ldr x30, [x21, #8]
 ---
-ldr x30, [x27, #16]
+ldr x30, [x21, #16]
 ---
-str w28, [x28]
+str w18, [x18]
 ---
 stp xzr, xzr, [sp, #-0x10]!
 ---
-swpal w0, w0, [x28]
+swpal w0, w0, [x18]
 ---
-ldadd w0, w0, [x28]
+ldadd w0, w0, [x18]
 ---
 // flags: --sandbox=stores
 ldr x0, [x1]
 ---
 // flags: --sandbox=stores
 ldr x0, [x1], #16
----
-.arch_extension pauth
-retaa
----
-.arch_extension pauth
-autiasp
----
-.arch_extension pauth
-paciasp

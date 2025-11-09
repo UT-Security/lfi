@@ -1,6 +1,5 @@
 #include <elf.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "pal/platform.h"
 
