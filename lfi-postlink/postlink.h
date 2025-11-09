@@ -18,6 +18,7 @@ struct arguments {
     enum meter meter;
     bool prefix;
     bool precise;
+    bool no_nopfix;
 };
 
 extern struct arguments args;

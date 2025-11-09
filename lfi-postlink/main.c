@@ -17,8 +17,9 @@ static char args_doc[] = "INPUT";
 enum {
     ARG_bundle    = 0x80,
     ARG_meter     = 0x81,
-    ARG_prefix  = 0x82,
+    ARG_prefix    = 0x82,
     ARG_precise   = 0x83,
+    ARG_no_nopfix = 0x84,
 };
 
 static struct argp_option options[] = {
@@ -28,6 +29,7 @@ static struct argp_option options[] = {
     { "meter",          ARG_meter,         "TYPE", 0, "set the metering type (branch,fp,timer)" },
     { "precise",        ARG_precise,       0,      0, "enable precise metering" },
     { "prefix-pad",     ARG_prefix,        0,      0, "enable prefix padding" },
+    { "no-nopfix",      ARG_no_nopfix,     0,      0, "don't run nopfix (amd64)" },
     { 0 },
 };
 
@@ -65,6 +67,9 @@ parse_opt(int key, char* arg, struct argp_state* state)
         break;
     case ARG_prefix:
         args->prefix = true;
+        break;
+    case ARG_no_nopfix:
+        args->no_nopfix = true;
         break;
     case ARGP_KEY_ARG:
         args->input = arg;

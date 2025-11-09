@@ -447,7 +447,8 @@ amd64_postlink(uint8_t* buf, size_t sz)
 
         if (args.bundle != 0) {
             size_t count = 0;
-            nopfix(code, p->filesz, args.bundle, p->vaddr);
+            if (!args.no_nopfix)
+                nopfix(code, p->filesz, args.bundle, p->vaddr);
             while (count + args.bundle <= p->filesz) {
                 /* bundlefix(&code[count], p->filesz - count, args.bundle, p->vaddr + count); */
                 if (args.prefix)
