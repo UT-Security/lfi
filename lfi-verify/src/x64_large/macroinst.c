@@ -9,24 +9,21 @@ static bool assert_reg(FdInstr *instr, uint8_t op_index, FdReg reg, uint8_t op_s
         FD_OP_SIZE(instr, op_index) == op_size);
 }
 
-static struct MacroInst macroinst_stos(struct Verifier *v, uint8_t *buf, size_t size) {
+static struct MacroInst macroinst_stos(struct Verifier *v, uint8_t *buf, size_t size, FdInstr* i_pext) {
     // stos becomes:
     //
     // pext %r15 %rdi, %rdi
     // leaq (%r14, %rdi), %rdi
     // rep stosq
 
-    FdInstr i_pext, i_lea, i_stos;
+    FdInstr i_lea, i_stos;
     size_t offset = 0;
 
-    if (fd_decode(&buf[offset], size - offset, 64, 0, &i_pext) < 0) {
-        return (struct MacroInst){-1, 0};
-    }
-    offset += i_pext.size;
-    if (FD_TYPE(&i_pext) != FDI_PEXT ||
-        !assert_reg(&i_pext, 0, FD_REG_DI, 8) ||
-        !assert_reg(&i_pext, 1, FD_REG_DI, 8) ||
-        !assert_reg(&i_pext, 2, FD_REG_R15, 8)) {
+    offset += i_pext->size;
+    if (FD_TYPE(i_pext) != FDI_PEXT ||
+        !assert_reg(i_pext, 0, FD_REG_DI, 8) ||
+        !assert_reg(i_pext, 1, FD_REG_DI, 8) ||
+        !assert_reg(i_pext, 2, FD_REG_R15, 8)) {
         return (struct MacroInst){-1, 0};
     }
 
@@ -55,7 +52,7 @@ static struct MacroInst macroinst_stos(struct Verifier *v, uint8_t *buf, size_t 
     return (struct MacroInst){offset, 3};
 }
 
-static struct MacroInst macroinst_movs(struct Verifier *v, uint8_t *buf, size_t size) {
+static struct MacroInst macroinst_movs(struct Verifier *v, uint8_t *buf, size_t size, FdInstr* i_pext) {
     // movs becomes:
     // pext %r15, %rdi, %rdi
     // leaq (%r14, %rdi), %rdi
@@ -63,20 +60,17 @@ static struct MacroInst macroinst_movs(struct Verifier *v, uint8_t *buf, size_t 
     // leaq (%r14, %rsi), %rsi
     // movsq
 
-    FdInstr i_pext, i_lea, i_pext2, i_lea2, i_movs;
+    FdInstr i_lea, i_pext2, i_lea2, i_movs;
     size_t offset = 0;
     size_t icount = 0;
     bool storesonly = v->opts->box == LFI_BOX_STORES;
 
-    if (fd_decode(&buf[offset], size - offset, 64, 0, &i_pext) < 0) {
-        return (struct MacroInst){-1, 0};
-    }
-    offset += i_pext.size;
+    offset += i_pext->size;
     icount++;
-    if (FD_TYPE(&i_pext) != FDI_PEXT ||
-        !assert_reg(&i_pext, 0, FD_REG_DI, 8) ||
-        !assert_reg(&i_pext, 1, FD_REG_DI, 8) ||
-        !assert_reg(&i_pext, 2, FD_REG_R15, 8)) {
+    if (FD_TYPE(i_pext) != FDI_PEXT ||
+        !assert_reg(i_pext, 0, FD_REG_DI, 8) ||
+        !assert_reg(i_pext, 1, FD_REG_DI, 8) ||
+        !assert_reg(i_pext, 2, FD_REG_R15, 8)) {
         return (struct MacroInst){-1, 0};
     }
 
@@ -137,23 +131,21 @@ static struct MacroInst macroinst_movs(struct Verifier *v, uint8_t *buf, size_t 
     return (struct MacroInst){offset, icount};
 }
 
-static struct MacroInst macroinst_jmp(struct Verifier *v, uint8_t *buf, size_t size) {
+static struct MacroInst macroinst_jmp(struct Verifier *v, uint8_t *buf, size_t size, FdInstr* i_and) {
     // andq %r15, %rX
     // andq $0xffffffffffffffe0, %rX
     // orq %r14, %rX
     // jmp *(%rX)
 
-    FdInstr i_and, i_and2, i_or, i_jmp;
+    FdInstr i_and2, i_or, i_jmp;
     size_t offset = 0;
-    if (fd_decode(&buf[0], size, 64, 0, &i_and) < 0)
-        return (struct MacroInst){-1, 0};
-    offset += i_and.size;
+    offset += i_and->size;
 
-    if (FD_TYPE(&i_and) != FDI_AND ||
-            !assert_reg(&i_and, 1, FD_REG_R15, 8) ||
-            FD_OP_TYPE(&i_and, 0) != FD_OT_REG ||
-            reserved(&i_and, 0) ||
-            FD_OP_SIZE(&i_and, 0) != 8)
+    if (FD_TYPE(i_and) != FDI_AND ||
+            !assert_reg(i_and, 1, FD_REG_R15, 8) ||
+            FD_OP_TYPE(i_and, 0) != FD_OT_REG ||
+            reserved(i_and, 0) ||
+            FD_OP_SIZE(i_and, 0) != 8)
         return (struct MacroInst){-1, 0};
 
     if (fd_decode(&buf[offset], size - offset, 64, 0, &i_and2) < 0)
@@ -162,7 +154,7 @@ static struct MacroInst macroinst_jmp(struct Verifier *v, uint8_t *buf, size_t s
 
     if (FD_TYPE(&i_and2) != FDI_AND ||
             FD_OP_TYPE(&i_and2, 0) != FD_OT_REG ||
-            FD_OP_REG(&i_and2, 0) != FD_OP_REG(&i_and, 0) ||
+            FD_OP_REG(&i_and2, 0) != FD_OP_REG(i_and, 0) ||
             FD_OP_SIZE(&i_and2, 0) != 8 ||
             FD_OP_TYPE(&i_and2, 1) != FD_OT_IMM ||
             FD_OP_IMM(&i_and2, 1) != 0xffffffffffffffe0)
@@ -196,22 +188,20 @@ static bool okdisp(int64_t disp) {
     return (disp % 8 == 0) && (disp < 256);
 }
 
-static struct MacroInst macroinst_rtcall(struct Verifier *v, uint8_t *buf, size_t size) {
+static struct MacroInst macroinst_rtcall(struct Verifier *v, uint8_t *buf, size_t size, FdInstr* i_lea) {
     // leaq 1f(%rip), %r11
     // jmpq *N(%r14)
     // 1:
-    FdInstr i_lea, i_jmp;
-    if (fd_decode(&buf[0], size, 64, 0, &i_lea) < 0)
+    FdInstr i_jmp;
+
+    if (FD_TYPE(i_lea) != FDI_LEA ||
+            FD_OP_TYPE(i_lea, 0) != FD_OT_REG ||
+            FD_OP_REG(i_lea, 0) != FD_REG_R11 ||
+            FD_OP_TYPE(i_lea, 1) != FD_OT_MEM ||
+            FD_OP_BASE(i_lea, 1) != FD_REG_IP)
         return (struct MacroInst){-1, 0};
 
-    if (FD_TYPE(&i_lea) != FDI_LEA ||
-            FD_OP_TYPE(&i_lea, 0) != FD_OT_REG ||
-            FD_OP_REG(&i_lea, 0) != FD_REG_R11 ||
-            FD_OP_TYPE(&i_lea, 1) != FD_OT_MEM ||
-            FD_OP_BASE(&i_lea, 1) != FD_REG_IP)
-        return (struct MacroInst){-1, 0};
-
-    if (fd_decode(&buf[i_lea.size], size - i_lea.size, 64, 0, &i_jmp) < 0)
+    if (fd_decode(&buf[i_lea->size], size - i_lea->size, 64, 0, &i_jmp) < 0)
         return (struct MacroInst){-1, 0};
 
     if (FD_TYPE(&i_jmp) != FDI_JMP ||
@@ -224,15 +214,15 @@ static struct MacroInst macroinst_rtcall(struct Verifier *v, uint8_t *buf, size_
 
     // Return target can either be the next instruction or can be some
     // bundle-aligned location.
-    uintptr_t ret = v->addr + i_lea.size + FD_OP_DISP(&i_lea, 1);
-    bool ok = FD_OP_DISP(&i_lea, 1) == i_jmp.size || ret % v->bundlesize == 0;
+    uintptr_t ret = v->addr + i_lea->size + FD_OP_DISP(i_lea, 1);
+    bool ok = FD_OP_DISP(i_lea, 1) == i_jmp.size || ret % v->bundlesize == 0;
     if (!ok)
         return (struct MacroInst){-1, 0};
 
-    return (struct MacroInst){i_lea.size + i_jmp.size, 2};
+    return (struct MacroInst){i_lea->size + i_jmp.size, 2};
 }
 
-static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t size) {
+static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t size, FdInstr* i_and) {
     size_t bundlesize = 32;
 
     // TODO: this relies on a movsq instruction outside of the bundle
@@ -242,17 +232,15 @@ static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t 
     // NOP*
     // callq *%rX
 
-    FdInstr i_and, i_and2, i_or, i_jmp;
+    FdInstr i_and2, i_or, i_jmp;
     size_t offset = 0;
-    if (fd_decode(&buf[0], size, 64, 0, &i_and) < 0)
-        return (struct MacroInst){-1, 0};
-    offset += i_and.size;
+    offset += i_and->size;
 
-    if (FD_TYPE(&i_and) != FDI_AND ||
-            !assert_reg(&i_and, 1, FD_REG_R15, 8) ||
-            FD_OP_TYPE(&i_and, 0) != FD_OT_REG ||
-            reserved(&i_and, 0) ||
-            FD_OP_SIZE(&i_and, 0) != 8)
+    if (FD_TYPE(i_and) != FDI_AND ||
+            !assert_reg(i_and, 1, FD_REG_R15, 8) ||
+            FD_OP_TYPE(i_and, 0) != FD_OT_REG ||
+            reserved(i_and, 0) ||
+            FD_OP_SIZE(i_and, 0) != 8)
         return (struct MacroInst){-1, 0};
 
     if (fd_decode(&buf[offset], size - offset, 64, 0, &i_and2) < 0)
@@ -261,7 +249,7 @@ static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t 
 
     if (FD_TYPE(&i_and2) != FDI_AND ||
             FD_OP_TYPE(&i_and2, 0) != FD_OT_REG ||
-            FD_OP_REG(&i_and2, 0) != FD_OP_REG(&i_and, 0) ||
+            FD_OP_REG(&i_and2, 0) != FD_OP_REG(i_and, 0) ||
             FD_OP_SIZE(&i_and2, 0) != 8 ||
             FD_OP_TYPE(&i_and2, 1) != FD_OT_IMM ||
             FD_OP_IMM(&i_and2, 1) != 0xffffffffffffffe0)
@@ -296,24 +284,22 @@ static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t 
     return (struct MacroInst){offset, icount};
 }
 
-static struct MacroInst macroinst_hlt(struct Verifier *v, uint8_t *buf, size_t size) {
+static struct MacroInst macroinst_hlt(struct Verifier *v, uint8_t *buf, size_t size, FdInstr* i_halt) {
     // for spidermonkey, data will sometimes be stored in code section
     // we solve that by beginning each bundle of data with an hlt instruction
     // this is safe since we have that all jumps are bundle-aligned, or we'll manually
     // check that the jump target is safe
     // hlt
     // anything you want
-    FdInstr i_halt, i_any;
+    FdInstr i_any;
     int64_t bundlesize = v->bundlesize;
     size_t count = 0;
     size_t icount = 1;
-    if(fd_decode(buf, size, 64, 0, &i_halt) < 0)
+
+    if(FD_TYPE(i_halt) != FDI_HLT)
         return (struct MacroInst){-1, 0};
 
-    if(FD_TYPE(&i_halt) != FDI_HLT)
-        return (struct MacroInst){-1, 0};
-
-    count += i_halt.size;
+    count += i_halt->size;
     // we just skip over the rest of the instructions, up to size
     if((v->addr + count) % bundlesize) {
         size_t rest = bundlesize - ((v->addr + count) % bundlesize);
@@ -344,29 +330,27 @@ bool unsafe_store_any(FdInstr* inst, uint32_t op, uint32_t reg, int64_t guard) {
         FD_OP_DISP(inst, op) < -guard;
 }
 
-static struct MacroInst macroinst_store_pext(struct Verifier *v, uint8_t *buf, size_t size) {
+static struct MacroInst macroinst_store_pext(struct Verifier *v, uint8_t *buf, size_t size, FdInstr* i_pext) {
     // note: for  SIB, the actual address will be moved
     // into r11 beforehand
     // this will not work if we cannot reserve r11
     // pext %r15, %rX, %rY
     // mov %rX, (%r14, %rY)
 
-    FdInstr i_store, i_pext;
+    FdInstr i_store;
     int64_t  guardsize = v->opts->guardsize;
-    if (fd_decode(&buf[0], size, 64, 0, &i_pext) < 0)
-        return (struct MacroInst){-1, 0};
 
-    if (FD_TYPE(&i_pext) != FDI_PEXT ||
-            FD_OP_TYPE(&i_pext, 0) != FD_OT_REG ||
-            FD_OP_TYPE(&i_pext, 1) != FD_OT_REG ||
-            FD_OP_TYPE(&i_pext, 2) != FD_OT_REG ||
-            FD_OP_REG(&i_pext, 2) != FD_REG_R15 ||
-            reserved(&i_pext, 0)
+    if (FD_TYPE(i_pext) != FDI_PEXT ||
+            FD_OP_TYPE(i_pext, 0) != FD_OT_REG ||
+            FD_OP_TYPE(i_pext, 1) != FD_OT_REG ||
+            FD_OP_TYPE(i_pext, 2) != FD_OT_REG ||
+            FD_OP_REG(i_pext, 2) != FD_REG_R15 ||
+            reserved(i_pext, 0)
         )
         return (struct MacroInst){-1, 0};
 
-    uint32_t targ = FD_OP_REG(&i_pext, 0);
-    if (fd_decode(&buf[i_pext.size], size - i_pext.size, 64, 0, &i_store) < 0)
+    uint32_t targ = FD_OP_REG(i_pext, 0);
+    if (fd_decode(&buf[i_pext->size], size - i_pext->size, 64, 0, &i_store) < 0)
         return (struct MacroInst){-1, 0};
 
     if(FD_TYPE(&i_store) == FDI_XCHG ||
@@ -383,25 +367,24 @@ static struct MacroInst macroinst_store_pext(struct Verifier *v, uint8_t *buf, s
             return (struct MacroInst){-1, 0};
     }
 
-    return (struct MacroInst){i_pext.size + i_store.size, 2};
+    return (struct MacroInst){i_pext->size + i_store.size, 2};
 }
 
-static struct MacroInst macroinst_store_pext_multi(struct Verifier *v, uint8_t *buf, size_t size) {
+static struct MacroInst macroinst_store_pext_multi(struct Verifier *v, uint8_t *buf, 
+    size_t size, FdInstr* i_pext) {
     // pext %r15, %rX, %rX
     // lea (%r14, %rX), %rX
     // mov rX, rX
 
-    FdInstr i_store, i_pext, i_lea;
+    FdInstr i_store, i_lea;
     uint32_t offset = 0;
-    if (fd_decode(&buf[0], size, 64, 0, &i_pext) < 0)
-        return (struct MacroInst){-1, 0};
-    offset += i_pext.size;
+    offset += i_pext->size;
 
-    if (FD_TYPE(&i_pext) != FDI_PEXT ||
-            FD_OP_TYPE(&i_pext, 0) != FD_OT_REG ||
-            FD_OP_TYPE(&i_pext, 1) != FD_OT_REG ||
-            FD_OP_TYPE(&i_pext, 2) != FD_OT_REG ||
-            FD_OP_REG(&i_pext, 2) != FD_REG_R15
+    if (FD_TYPE(i_pext) != FDI_PEXT ||
+            FD_OP_TYPE(i_pext, 0) != FD_OT_REG ||
+            FD_OP_TYPE(i_pext, 1) != FD_OT_REG ||
+            FD_OP_TYPE(i_pext, 2) != FD_OT_REG ||
+            FD_OP_REG(i_pext, 2) != FD_REG_R15
         )
         return (struct MacroInst){-1, 0};
 
@@ -413,7 +396,7 @@ static struct MacroInst macroinst_store_pext_multi(struct Verifier *v, uint8_t *
             FD_OP_TYPE(&i_lea, 0) != FD_OT_REG ||
             FD_OP_TYPE(&i_lea, 1) != FD_OT_MEM ||
             FD_OP_BASE(&i_lea, 1) != FD_REG_R14 ||
-            FD_OP_INDEX(&i_lea, 1) != FD_OP_REG(&i_pext, 0) ||
+            FD_OP_INDEX(&i_lea, 1) != FD_OP_REG(i_pext, 0) ||
             FD_OP_SCALE(&i_lea, 1) != 0 ||
             FD_OP_DISP(&i_lea, 1) != 0)
         return (struct MacroInst){-1, 0};
@@ -434,27 +417,25 @@ static struct MacroInst macroinst_store_pext_multi(struct Verifier *v, uint8_t *
     return (struct MacroInst){offset, 3};
 }
 
-static struct MacroInst macroinst_store_three(struct Verifier *v, uint8_t *buf, size_t size) {
+static struct MacroInst macroinst_store_three(struct Verifier *v, uint8_t *buf, size_t size, FdInstr* i_and) {
     // andq %r15, %rX
     // or %r14, %rX
     // mov <anything>, (%rX, off)
     
     bool storesonly = v->opts->box == LFI_BOX_STORES;
     int64_t guardsize = v->opts->guardsize;
-    FdInstr i_and, i_or, i_store;
+    FdInstr i_or, i_store;
     size_t offset = 0;
-    if (fd_decode(&buf[offset], size - offset, 64, 0, &i_and) < 0)
-        return (struct MacroInst){-1, 0};
-    offset += i_and.size;
+    offset += i_and->size;
 
-    if (FD_TYPE(&i_and) != FDI_AND ||
-            FD_OP_TYPE(&i_and, 0) != FD_OT_REG ||
-            FD_OP_TYPE(&i_and, 1) != FD_OT_REG ||
-            reserved(&i_and, 0) || 
-            FD_OP_REG(&i_and, 1) != FD_REG_R15)
+    if (FD_TYPE(i_and) != FDI_AND ||
+            FD_OP_TYPE(i_and, 0) != FD_OT_REG ||
+            FD_OP_TYPE(i_and, 1) != FD_OT_REG ||
+            reserved(i_and, 0) || 
+            FD_OP_REG(i_and, 1) != FD_REG_R15)
         return (struct MacroInst){-1, 0};
 
-    uint32_t targ = FD_OP_REG(&i_and, 0);
+    uint32_t targ = FD_OP_REG(i_and, 0);
     if (fd_decode(&buf[offset], size - offset, 64, 0, &i_or) < 0)
         return (struct MacroInst){-1, 0};
     offset += i_or.size;
@@ -491,24 +472,22 @@ static struct MacroInst macroinst_store_three(struct Verifier *v, uint8_t *buf, 
     return (struct MacroInst){offset, 3};
 }
 
-static struct MacroInst macroinst_store_two(struct Verifier *v, uint8_t *buf, size_t size) {
+static struct MacroInst macroinst_store_two(struct Verifier *v, uint8_t *buf, size_t size, FdInstr* i_and) {
     //stores sometimes also follow this pattern:
     // andq %r15, %r11
     // mov <anything> (%r14, %r11)
 
     bool storesonly = v->opts->box == LFI_BOX_STORES;
     int64_t guardsize = v->opts->guardsize;
-    FdInstr i_and, i_store;
+    FdInstr i_store;
     size_t offset = 0;
-    if (fd_decode(&buf[offset], size - offset, 64, 0, &i_and) < 0)
-        return (struct MacroInst){-1, 0};
-    offset += i_and.size;
+    offset += i_and->size;
 
-    if (FD_TYPE(&i_and) != FDI_AND ||
-            FD_OP_TYPE(&i_and, 0) != FD_OT_REG ||
-            FD_OP_TYPE(&i_and, 1) != FD_OT_REG ||
-            reserved(&i_and, 0) || 
-            FD_OP_REG(&i_and, 1) != FD_REG_R15)
+    if (FD_TYPE(i_and) != FDI_AND ||
+            FD_OP_TYPE(i_and, 0) != FD_OT_REG ||
+            FD_OP_TYPE(i_and, 1) != FD_OT_REG ||
+            reserved(i_and, 0) || 
+            FD_OP_REG(i_and, 1) != FD_REG_R15)
         return (struct MacroInst){-1, 0};
 
     if (fd_decode(&buf[offset], size - offset, 64, 0, &i_store) < 0) {
@@ -516,7 +495,7 @@ static struct MacroInst macroinst_store_two(struct Verifier *v, uint8_t *buf, si
     }
     offset += i_store.size;
 
-    uint32_t targ = FD_OP_REG(&i_and, 0);
+    uint32_t targ = FD_OP_REG(i_and, 0);
     //we actually don't really care if the 
     //store instruction is a mov. We just care
     //that it only writes to the memory address specified
@@ -538,25 +517,23 @@ static struct MacroInst macroinst_store_two(struct Verifier *v, uint8_t *buf, si
     return (struct MacroInst){offset, 2};
 }
 
-static struct MacroInst macroinst_load(struct Verifier *v, uint8_t *buf, size_t size) {
+static struct MacroInst macroinst_load(struct Verifier *v, uint8_t *buf, size_t size, FdInstr* i_pext) {
     // pext %r15, %rX, %r11
     // movq (%r14, %r11), %rX
     int64_t guardsize = v->opts->guardsize;
 
-    FdInstr i_pext, i_load;
-    if (fd_decode(&buf[0], size, 64, 0, &i_pext) < 0)
-        return (struct MacroInst){-1, 0};
+    FdInstr i_load;
 
-    if (FD_TYPE(&i_pext) != FDI_PEXT ||
-            FD_OP_TYPE(&i_pext, 0) != FD_OT_REG ||
-            FD_OP_TYPE(&i_pext, 1) != FD_OT_REG ||
-            FD_OP_TYPE(&i_pext, 2) != FD_OT_REG ||
-            FD_OP_REG(&i_pext, 2) != FD_REG_R15 ||
-            reserved(&i_pext, 0)
+    if (FD_TYPE(i_pext) != FDI_PEXT ||
+            FD_OP_TYPE(i_pext, 0) != FD_OT_REG ||
+            FD_OP_TYPE(i_pext, 1) != FD_OT_REG ||
+            FD_OP_TYPE(i_pext, 2) != FD_OT_REG ||
+            FD_OP_REG(i_pext, 2) != FD_REG_R15 ||
+            reserved(i_pext, 0)
         )
         return (struct MacroInst){-1, 0};
 
-    if (fd_decode(&buf[i_pext.size], size - i_pext.size, 64, 0, &i_load) < 0)
+    if (fd_decode(&buf[i_pext->size], size - i_pext->size, 64, 0, &i_load) < 0)
         return (struct MacroInst){-1, 0};
 
     if (FD_TYPE(&i_load) != FDI_MOV ||
@@ -564,16 +541,16 @@ static struct MacroInst macroinst_load(struct Verifier *v, uint8_t *buf, size_t 
             reserved(&i_load, 0) ||
             FD_OP_TYPE(&i_load, 1) != FD_OT_MEM ||
             FD_OP_BASE(&i_load, 1) != FD_REG_R14 ||
-            FD_OP_INDEX(&i_load, 1) != FD_OP_REG(&i_pext, 0) ||
+            FD_OP_INDEX(&i_load, 1) != FD_OP_REG(i_pext, 0) ||
             FD_OP_SCALE(&i_load, 1) != 0 ||
             FD_OP_DISP(&i_load, 1) > guardsize ||
             FD_OP_DISP(&i_load, 1) < -guardsize)
         return (struct MacroInst){-1, 0};
 
-    return (struct MacroInst){i_pext.size + i_load.size, 2};
+    return (struct MacroInst){i_pext->size + i_load.size, 2};
 }
 
-static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t size) {
+static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t size, FdInstr* i_mov) {
     // mov/sub/add/and ..., %rsp
     // andq %r15, %rsp
     // orq %r14, %rsp
@@ -588,21 +565,19 @@ static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t
     // leaq <offset>(%rsp, %r14), %rsp
 
     int64_t guardsize = v->opts->guardsize;
-    FdInstr i_mov, i_and, i_or;
+    FdInstr i_and, i_or;
     size_t count = 0;
     bool storesonly = v->opts->box == LFI_BOX_STORES;
 
-    if (fd_decode(&buf[0], size, 64, 0, &i_mov) < 0)
-        return (struct MacroInst){-1, 0};
-    count += i_mov.size;
+    count += i_mov->size;
 
     if (fd_decode(&buf[count], size - count, 64, 0, &i_and) < 0)
         return (struct MacroInst){-1, 0};
     count += i_and.size;
     //we handle the case for small numbers now
-    if(FD_TYPE(&i_mov) == FDI_AND &&
-        assert_reg(&i_mov, 0, FD_REG_SP, 8) &&
-        assert_reg(&i_mov, 1, FD_REG_R15, 8) &&
+    if(FD_TYPE(i_mov) == FDI_AND &&
+        assert_reg(i_mov, 0, FD_REG_SP, 8) &&
+        assert_reg(i_mov, 1, FD_REG_R15, 8) &&
         //assert that it's lea
         FD_TYPE(&i_and) == FDI_LEA &&
         assert_reg(&i_and, 0, FD_REG_SP, 8) &&
@@ -620,18 +595,18 @@ static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t
     count += i_or.size;
 
     // allow addl, subl, lea, add movl, pop
-    if (FD_TYPE(&i_mov) != FDI_MOV &&
-            FD_TYPE(&i_mov) != FDI_ADD &&
-            FD_TYPE(&i_mov) != FDI_AND &&
-            FD_TYPE(&i_mov) != FDI_SUB &&
-            FD_TYPE(&i_mov) != FDI_LEA &&
-            FD_TYPE(&i_mov) != FDI_POP)
+    if (FD_TYPE(i_mov) != FDI_MOV &&
+            FD_TYPE(i_mov) != FDI_ADD &&
+            FD_TYPE(i_mov) != FDI_AND &&
+            FD_TYPE(i_mov) != FDI_SUB &&
+            FD_TYPE(i_mov) != FDI_LEA &&
+            FD_TYPE(i_mov) != FDI_POP)
         return (struct MacroInst){-1, 0};
 
     //TODO: this does not work for read sandbox
-    if (FD_OP_TYPE(&i_mov, 0) != FD_OT_REG ||
-            FD_OP_SIZE(&i_mov, 0) != 8 ||
-            FD_OP_REG(&i_mov, 0) != FD_REG_SP)
+    if (FD_OP_TYPE(i_mov, 0) != FD_OT_REG ||
+            FD_OP_SIZE(i_mov, 0) != 8 ||
+            FD_OP_REG(i_mov, 0) != FD_REG_SP)
         return (struct MacroInst){-1, 0};
 
     if(FD_TYPE(&i_and) == FDI_AND &&
@@ -642,7 +617,7 @@ static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t
         assert_reg(&i_or, 1, FD_REG_R14, 8))
         return (struct MacroInst){count, 3};
 
-    if(FD_TYPE(&i_mov) != FDI_LEA)
+    if(FD_TYPE(i_mov) != FDI_LEA)
         return (struct MacroInst){-1, 0};
 
     if(FD_TYPE(&i_and) != FDI_PEXT ||
@@ -664,7 +639,7 @@ static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t
 }
 
 
-typedef struct MacroInst (*MacroFn)(struct Verifier *, uint8_t*, size_t);
+typedef struct MacroInst (*MacroFn)(struct Verifier *, uint8_t*, size_t, FdInstr*);
 
 static MacroFn mfns[] = {
     macroinst_jmp,
@@ -682,8 +657,11 @@ static MacroFn mfns[] = {
 };
 
 static struct MacroInst macroinst(struct Verifier *v, uint8_t *buf, size_t size) {
+    FdInstr first;
+    if(fd_decode(buf, size, 64, 0, &first) < 0)
+        return (struct MacroInst){-1, 0};
     for (size_t i = 0; i < sizeof(mfns) / sizeof(mfns[0]); i++) {
-        struct MacroInst mi = mfns[i](v, buf, size);
+        struct MacroInst mi = mfns[i](v, buf, size, &first);
         if (mi.size > 0)
             return mi;
     }
