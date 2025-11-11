@@ -170,6 +170,12 @@ static void chkmem(struct Verifier *v, FdInstr *instr) {
                  FD_TYPE(instr) == FDI_BT)
                 )
                 continue;
+            
+            if (FD_OP_BASE(instr, i) == FD_REG_R14 &&
+                FD_OP_INDEX(instr, i) == FD_REG_NONE &&
+                FD_OP_SCALE(instr, i) == 0 &&
+                FD_OP_DISP(instr, i) == 0)
+                continue;
             if (FD_OP_BASE(instr, i) != FD_REG_SP &&
                     FD_OP_BASE(instr, i) != FD_REG_IP)
                 verr(v, instr, "invalid base register for memory access");
