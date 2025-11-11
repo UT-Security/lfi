@@ -313,6 +313,9 @@ static struct MacroInst macroinst_hlt(struct Verifier *v, uint8_t *buf, size_t s
 }
 
 bool check_unsafe_store(FdInstr* inst, uint32_t op, uint32_t reg, int64_t guard) {
+    if(FD_OP_BASE(inst, op) == FD_REG_R14 && FD_OP_INDEX(inst, op) == FD_REG_NONE &&
+        FD_OP_SCALE(inst, op) == 0 && FD_OP_DISP(inst, op) > guard && FD_OP_DISP(inst, op) < -guard)
+        return false;
     return
         FD_OP_BASE(inst, op) != FD_REG_R14 ||
         FD_OP_INDEX(inst, op) != reg ||
