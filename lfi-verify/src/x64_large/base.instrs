@@ -384,7 +384,7 @@ case FDI_DIV:
 // case FDI_EVX_INSERTI32X8:
 // case FDI_EVX_INSERTI64X2:
 // case FDI_EVX_INSERTI64X4:
-// case FDI_EVX_INSERTPS:
+ case FDI_EVX_INSERTPS:
 // case FDI_EVX_MAXPD:
 // case FDI_EVX_MAXPH:
 // case FDI_EVX_MAXPS:
@@ -1461,8 +1461,8 @@ case FDI_UD2:
 // case FDI_UIRET:
 // case FDI_UMONITOR:
 // case FDI_UMWAIT:
-// case FDI_VADDPD:
-// case FDI_VADDPS:
+ case FDI_VADDPD:
+ case FDI_VADDPS:
  case FDI_VADDSD:
  case FDI_VADDSS:
 // case FDI_VADDSUBPD:
@@ -1516,8 +1516,8 @@ case FDI_UD2:
  case FDI_VCVTTPS2DQ:
  case FDI_VCVTTSD2SI:
  case FDI_VCVTTSS2SI:
-// case FDI_VDIVPD:
-// case FDI_VDIVPS:
+ case FDI_VDIVPD:
+ case FDI_VDIVPS:
  case FDI_VDIVSD:
  case FDI_VDIVSS:
 // case FDI_VDPPD:
@@ -1600,13 +1600,13 @@ case FDI_UD2:
 // case FDI_VHSUBPS:
 // case FDI_VINSERTF128:
  case FDI_VINSERTI128:
-// case FDI_VINSERTPS:
+ case FDI_VINSERTPS:
 // case FDI_VLDDQU:
 // case FDI_VLDMXCSR:
 // case FDI_VMASKMOVDQU:
 // case FDI_VMASKMOVPD:
 // case FDI_VMASKMOVPS:
-// case FDI_VMAXPD:
+ case FDI_VMAXPD:
  case FDI_VMAXPS:
 // case FDI_VMAXSD:
 // case FDI_VMAXSS:
@@ -1653,8 +1653,8 @@ case FDI_UD2:
 // case FDI_VMRESUME:
 // case FDI_VMRUN:
 // case FDI_VMSAVE:
-// case FDI_VMULPD:
-// case FDI_VMULPS:
+ case FDI_VMULPD:
+ case FDI_VMULPS:
  case FDI_VMULSD:
  case FDI_VMULSS:
 // case FDI_VMWRITE:
@@ -1665,23 +1665,23 @@ case FDI_UD2:
  case FDI_VPABSB:
  case FDI_VPABSD:
  case FDI_VPABSW:
-// case FDI_VPACKSSDW:
+ case FDI_VPACKSSDW:
  case FDI_VPACKSSWB:
-// case FDI_VPACKUSDW:
-// case FDI_VPACKUSWB:
-// case FDI_VPADDB:
+ case FDI_VPACKUSDW:
+ case FDI_VPACKUSWB:
+ case FDI_VPADDB:
  case FDI_VPADDD:
-// case FDI_VPADDQ:
-// case FDI_VPADDSB:
-// case FDI_VPADDSW:
+ case FDI_VPADDQ:
+ case FDI_VPADDSB:
+ case FDI_VPADDSW:
  case FDI_VPADDUSB:
  case FDI_VPADDUSW:
-// case FDI_VPADDW:
-// case FDI_VPALIGNR:
+ case FDI_VPADDW:
+ case FDI_VPALIGNR:
  case FDI_VPAND:
  case FDI_VPANDN:
  case FDI_VPAVGB:
-// case FDI_VPAVGW:
+ case FDI_VPAVGW:
 // case FDI_VPBLENDD:
  case FDI_VPBLENDVB:
 // case FDI_VPBLENDW:
@@ -1691,12 +1691,12 @@ case FDI_UD2:
  case FDI_VPBROADCASTW:
 // case FDI_VPCLMULQDQ:
  case FDI_VPCMPEQB:
-// case FDI_VPCMPEQD:
+ case FDI_VPCMPEQD:
  case FDI_VPCMPEQQ:
  case FDI_VPCMPEQW:
 // case FDI_VPCMPESTRI:
 // case FDI_VPCMPESTRM:
-// case FDI_VPCMPGTB:
+ case FDI_VPCMPGTB:
  case FDI_VPCMPGTD:
  case FDI_VPCMPGTQ:
  case FDI_VPCMPGTW:
@@ -1736,8 +1736,8 @@ case FDI_UD2:
 // case FDI_VPHSUBSW:
 // case FDI_VPHSUBW:
  case FDI_VPINSRB:
-// case FDI_VPINSRD:
-// case FDI_VPINSRQ:
+ case FDI_VPINSRD:
+ case FDI_VPINSRQ:
  case FDI_VPINSRW:
 // case FDI_VPMADD52HUQ:
 // case FDI_VPMADD52LUQ:
@@ -1745,18 +1745,18 @@ case FDI_UD2:
  case FDI_VPMADDWD:
 // case FDI_VPMASKMOVD:
 // case FDI_VPMASKMOVQ:
-// case FDI_VPMAXSB:
-// case FDI_VPMAXSD:
-// case FDI_VPMAXSW:
-// case FDI_VPMAXUB:
-// case FDI_VPMAXUD:
-// case FDI_VPMAXUW:
-// case FDI_VPMINSB:
-// case FDI_VPMINSD:
-// case FDI_VPMINSW:
-// case FDI_VPMINUB:
-// case FDI_VPMINUD:
-// case FDI_VPMINUW:
+ case FDI_VPMAXSB:
+ case FDI_VPMAXSD:
+ case FDI_VPMAXSW:
+ case FDI_VPMAXUB:
+ case FDI_VPMAXUD:
+ case FDI_VPMAXUW:
+ case FDI_VPMINSB:
+ case FDI_VPMINSD:
+ case FDI_VPMINSW:
+ case FDI_VPMINUB:
+ case FDI_VPMINUD:
+ case FDI_VPMINUW:
  case FDI_VPMOVMSKB:
 // case FDI_VPMOVSXBD:
 // case FDI_VPMOVSXBQ:
@@ -1770,25 +1770,25 @@ case FDI_UD2:
  case FDI_VPMOVZXDQ:
  case FDI_VPMOVZXWD:
  case FDI_VPMOVZXWQ:
-// case FDI_VPMULDQ:
-// case FDI_VPMULHRSW:
+ case FDI_VPMULDQ:
+ case FDI_VPMULHRSW:
  case FDI_VPMULHUW:
  case FDI_VPMULHW:
-// case FDI_VPMULLD:
-// case FDI_VPMULLW:
+ case FDI_VPMULLD:
+ case FDI_VPMULLW:
  case FDI_VPMULUDQ:
  case FDI_VPOR:
 // case FDI_VPSADBW:
  case FDI_VPSHUFB:
  case FDI_VPSHUFD:
  case FDI_VPSHUFHW:
-// case FDI_VPSHUFLW:
+ case FDI_VPSHUFLW:
 // case FDI_VPSIGNB:
 // case FDI_VPSIGND:
 // case FDI_VPSIGNW:
 // case FDI_VPSLLD:
 // case FDI_VPSLLDQ:
-// case FDI_VPSLLQ:
+case FDI_VPSLLQ:
 // case FDI_VPSLLVD:
 // case FDI_VPSLLVQ:
 // case FDI_VPSLLW:
@@ -1800,24 +1800,24 @@ case FDI_UD2:
  case FDI_VPSRLQ:
 // case FDI_VPSRLVD:
 // case FDI_VPSRLVQ:
-// case FDI_VPSRLW:
+ case FDI_VPSRLW:
  case FDI_VPSUBB:
  case FDI_VPSUBD:
-// case FDI_VPSUBQ:
-// case FDI_VPSUBSB:
+ case FDI_VPSUBQ:
+ case FDI_VPSUBSB:
 // case FDI_VPSUBSW:
-// case FDI_VPSUBUSB:
+ case FDI_VPSUBUSB:
 // case FDI_VPSUBUSW:
 // case FDI_VPSUBW:
  case FDI_VPTEST:
-// case FDI_VPUNPCKHBW:
+ case FDI_VPUNPCKHBW:
  case FDI_VPUNPCKHDQ:
-// case FDI_VPUNPCKHQDQ:
-// case FDI_VPUNPCKHWD:
-// case FDI_VPUNPCKLBW:
-// case FDI_VPUNPCKLDQ:
+ case FDI_VPUNPCKHQDQ:
+ case FDI_VPUNPCKHWD:
+ case FDI_VPUNPCKLBW:
+ case FDI_VPUNPCKLDQ:
  case FDI_VPUNPCKLQDQ:
-// case FDI_VPUNPCKLWD:
+ case FDI_VPUNPCKLWD:
  case FDI_VPXOR:
 // case FDI_VRCPPS:
 // case FDI_VRCPSS:
@@ -1827,19 +1827,19 @@ case FDI_UD2:
  case FDI_VROUNDSS:
 // case FDI_VRSQRTPS:
 // case FDI_VRSQRTSS:
-// case FDI_VSHUFPD:
+ case FDI_VSHUFPD:
  case FDI_VSHUFPS:
  case FDI_VSQRTPD:
  case FDI_VSQRTPS:
 // case FDI_VSQRTSD:
 // case FDI_VSQRTSS:
 // case FDI_VSTMXCSR:
-// case FDI_VSUBPD:
-// case FDI_VSUBPS:
+ case FDI_VSUBPD:
+ case FDI_VSUBPS:
  case FDI_VSUBSD:
  case FDI_VSUBSS:
-// case FDI_VTESTPD:
-// case FDI_VTESTPS:
+ case FDI_VTESTPD:
+ case FDI_VTESTPS:
  case FDI_VUCOMISD:
  case FDI_VUCOMISS:
 // case FDI_VUNPCKHPD:
