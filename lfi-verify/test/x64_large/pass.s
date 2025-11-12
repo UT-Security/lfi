@@ -160,3 +160,8 @@ divq 0x14(%rbp)
 ---
 // flags: --sandbox=stores
 btq %rax, (%rbx)
+---
+movq $0xb4, (%r14)
+---
+andq %r15, %r11
+movq (%r14, %r11), %rcx

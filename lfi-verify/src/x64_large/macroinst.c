@@ -258,7 +258,7 @@ static struct MacroInst macroinst_call(struct Verifier *v, uint8_t *buf, size_t 
         return (struct MacroInst){-1, 0};
     offset += i_or.size;
 
-    if (FD_TYPE(&i_or) != FDI_OR ||
+    if ((FD_TYPE(&i_or) != FDI_OR && FD_TYPE(&i_or) != FDI_ADD) ||
             FD_OP_TYPE(&i_or, 0) != FD_OT_REG ||
             FD_OP_TYPE(&i_or, 1) != FD_OT_REG ||
             !assert_reg(&i_or, 0, FD_OP_REG(&i_and2, 0), 8) ||
@@ -520,6 +520,7 @@ static struct MacroInst macroinst_store_two(struct Verifier *v, uint8_t *buf, si
     return (struct MacroInst){offset, 2};
 }
 
+
 static struct MacroInst macroinst_load(struct Verifier *v, uint8_t *buf, size_t size, FdInstr* i_pext) {
     // pext %r15, %rX, %r11
     // movq (%r14, %r11), %rX
@@ -551,6 +552,51 @@ static struct MacroInst macroinst_load(struct Verifier *v, uint8_t *buf, size_t 
         return (struct MacroInst){-1, 0};
 
     return (struct MacroInst){i_pext->size + i_load.size, 2};
+}
+
+static struct MacroInst macroinst_load_two(struct Verifier *v, uint8_t *buf, size_t size, FdInstr* i_and) {
+    //stores sometimes also follow this pattern:
+    // andq %r15, %r11
+    // mov <anything> (%r14, %r11)
+
+    bool storesonly = v->opts->box == LFI_BOX_STORES;
+    int64_t guardsize = v->opts->guardsize;
+    FdInstr i_store;
+    size_t offset = 0;
+    offset += i_and->size;
+
+    if (FD_TYPE(i_and) != FDI_AND ||
+            FD_OP_TYPE(i_and, 0) != FD_OT_REG ||
+            FD_OP_TYPE(i_and, 1) != FD_OT_REG ||
+            reserved(i_and, 0) || 
+            FD_OP_REG(i_and, 1) != FD_REG_R15)
+        return (struct MacroInst){-1, 0};
+
+    if (fd_decode(&buf[offset], size - offset, 64, 0, &i_store) < 0) {
+        return (struct MacroInst){-1, 0};
+    }
+    offset += i_store.size;
+
+    uint32_t targ = FD_OP_REG(i_and, 0);
+    //we actually don't really care if the 
+    //store instruction is a mov. We just care
+    //that it only writes to the memory address specified
+    //in operand 0
+    if(FD_TYPE(&i_store) == FDI_XCHG ||
+        FD_TYPE(&i_store) == FDI_CMPXCHG) {
+        if((FD_OP_TYPE(&i_store, 0) == FD_OT_MEM &&
+            check_unsafe_store(&i_store, 0, targ, guardsize)) ||
+            (FD_OP_TYPE(&i_store, 1) == FD_OT_MEM &&
+                check_unsafe_store(&i_store, 1, targ, guardsize))
+           )
+            return (struct MacroInst){-1, 0};
+    } else {
+        if (FD_OP_TYPE(&i_store, 1) != FD_OT_MEM ||
+            check_unsafe_store(&i_store, 1, targ, guardsize))
+            return (struct MacroInst){-1, 0};
+    }
+
+    return (struct MacroInst){offset, 2};
 }
 
 static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t size, FdInstr* i_mov) {
@@ -652,6 +698,7 @@ static MacroFn mfns[] = {
     macroinst_stos,
     macroinst_movs,
     macroinst_load,
+    macroinst_load_two,
     macroinst_store_pext,
     macroinst_store_two,
     macroinst_store_three,
