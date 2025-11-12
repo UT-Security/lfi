@@ -164,7 +164,7 @@ static struct MacroInst macroinst_jmp(struct Verifier *v, uint8_t *buf, size_t s
         return (struct MacroInst){-1, 0};
     offset += i_or.size;
 
-    if (FD_TYPE(&i_or) != FDI_OR ||
+    if ((FD_TYPE(&i_or) != FDI_OR && FD_TYPE(&i_or) != FDI_ADD) ||
             FD_OP_TYPE(&i_or, 0) != FD_OT_REG ||
             FD_OP_TYPE(&i_or, 1) != FD_OT_REG ||
             !assert_reg(&i_or, 0, FD_OP_REG(&i_and2, 0), 8) ||

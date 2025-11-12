@@ -165,3 +165,8 @@ movq $0xb4, (%r14)
 ---
 andq %r15, %r11
 movq (%r14, %r11), %rcx
+---
+andq %r15, %r11
+andq $-0x20, %r11
+addq %r14, %r11
+jmpq *%r11
