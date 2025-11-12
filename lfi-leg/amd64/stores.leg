@@ -98,16 +98,24 @@ Access = m:NAME a:Addr {
 }
 
 StoreH = m:NAME r:HREG COMMA a:AddrH {
-    mkguards(a);
-    mkinsn("%s %s, %s", m.val, r.val, a.val);
-    mkpost(a);
+    if (read_access(m.val) && args.boxtype < BOX_FULL) {
+        mkinsn("%s %s, %s", m.val, r.val, a.unmod);
+    } else {
+        mkguards(a);
+        mkinsn("%s %s, %s", m.val, r.val, a.val);
+        mkpost(a);
+    }
     rfree(m); rfree(a); rfree(r);
 }
 
 Store = m:NAME r:ITEM COMMA a:Addr {
-    mkguards(a);
-    mkinsn("%s %s, %s", m.val, r.val, a.val);
-    mkpost(a);
+    if (read_access(m.val) && args.boxtype < BOX_FULL) {
+        mkinsn("%s %s, %s", m.val, r.val, a.unmod);
+    } else {
+        mkguards(a);
+        mkinsn("%s %s, %s", m.val, r.val, a.val);
+        mkpost(a);
+    }
     rfree(m); rfree(a); rfree(r);
 }
 

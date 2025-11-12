@@ -48,7 +48,10 @@ lo(const char* reg)
 
 static bool
 read_access(const char *insn) {
-  if (strncmp(insn, "div", strlen("div")) == 0)
+  if (strncmp(insn, "div", strlen("div")) == 0
+      || strncmp(insn, "btl", strlen("btl")) == 0
+      || strncmp(insn, "bt", strlen("bt")) == 0
+    )
     return true;
   return false;
 }
