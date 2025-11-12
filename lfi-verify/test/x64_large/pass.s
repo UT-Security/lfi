@@ -170,3 +170,7 @@ andq %r15, %r11
 andq $-0x20, %r11
 addq %r14, %r11
 jmpq *%r11
+---
+andq $-0x10, %rsp
+andq %r15, %rsp
+addq %r14, %rsp
