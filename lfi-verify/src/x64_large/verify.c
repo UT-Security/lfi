@@ -363,12 +363,12 @@ static void vchkins(struct Verifier *v, uint8_t *buf, size_t size, FdInstrBundle
         mi->size = instr->size;
         mi->ninstr = 1;
 
-        /* if (!okmnem(v, instr)) { */
-        /*     verr(v, instr, "illegal instruction"); */
-        /* } */
-        /*  */
-        /* chkmem(v, instr); */
-        /* chkmod(v, instr); */
+        if (!okmnem(v, instr)) {
+            verr(v, instr, "illegal instruction");
+        }
+
+        chkmem(v, instr);
+        chkmod(v, instr);
         if(chkbranch(v, instr, buf, size)) {
             //skip over the rest of the instructions
             /* size_t bundle_off = (bundlesize - (v->addr % bundlesize)); */
