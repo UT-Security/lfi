@@ -351,10 +351,10 @@ static bool chkbranch(struct Verifier *v, FdInstr *instr, uint8_t* buf, size_t s
 // returns false if we're at an unconditional branch
 static void vchkins(struct Verifier *v, uint8_t* buf, size_t size, struct MacroInst* mi) {
     size_t bundlesize = v->bundlesize;
-    *mi = macroinst(v, buf, size);
+    FdInstr instr;
+    int ret = fd_decode(buf, size, 64, 0, &instr);
+    *mi = macroinst(v, buf, size, &instr);
     if (mi->size < 0) {
-        FdInstr instr;
-        int ret = fd_decode(buf, size, 64, 0, &instr);
         if (ret < 0) {
             verrmin(v, "%lx: unknown instruction", v->addr);
             exit(-1);

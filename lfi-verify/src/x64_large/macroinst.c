@@ -620,6 +620,15 @@ static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t
 
     count += i_mov->size;
 
+    // allow addl, subl, lea, add movl, pop
+    if (FD_TYPE(i_mov) != FDI_MOV &&
+            FD_TYPE(i_mov) != FDI_ADD &&
+            FD_TYPE(i_mov) != FDI_AND &&
+            FD_TYPE(i_mov) != FDI_SUB &&
+            FD_TYPE(i_mov) != FDI_LEA &&
+            FD_TYPE(i_mov) != FDI_POP)
+        return (struct MacroInst){-1, 0};
+
     if (fd_decode(&buf[count], size - count, 64, 0, &i_and) < 0)
         return (struct MacroInst){-1, 0};
     count += i_and.size;
@@ -642,15 +651,6 @@ static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t
     if (fd_decode(&buf[count], size - count, 64, 0, &i_or) < 0)
         return (struct MacroInst){-1, 0};
     count += i_or.size;
-
-    // allow addl, subl, lea, add movl, pop
-    if (FD_TYPE(i_mov) != FDI_MOV &&
-            FD_TYPE(i_mov) != FDI_ADD &&
-            FD_TYPE(i_mov) != FDI_AND &&
-            FD_TYPE(i_mov) != FDI_SUB &&
-            FD_TYPE(i_mov) != FDI_LEA &&
-            FD_TYPE(i_mov) != FDI_POP)
-        return (struct MacroInst){-1, 0};
 
     //TODO: this does not work for read sandbox
     if (FD_OP_TYPE(i_mov, 0) != FD_OT_REG ||
@@ -691,29 +691,42 @@ static struct MacroInst macroinst_modsp(struct Verifier *v, uint8_t *buf, size_t
 typedef struct MacroInst (*MacroFn)(struct Verifier *, uint8_t*, size_t, FdInstr*);
 
 static MacroFn mfns[] = {
+    macroinst_store_pext,
+    macroinst_store_two,
+    macroinst_store_three,
+    macroinst_store_pext_multi,
+    macroinst_load,
+    macroinst_load_two,
     macroinst_jmp,
     macroinst_call,
     macroinst_rtcall,
     macroinst_modsp,
     macroinst_stos,
     macroinst_movs,
-    macroinst_load,
-    macroinst_load_two,
-    macroinst_store_pext,
-    macroinst_store_two,
-    macroinst_store_three,
-    macroinst_store_pext_multi,
     macroinst_hlt
 };
 
-static struct MacroInst macroinst(struct Verifier *v, uint8_t *buf, size_t size) {
-    FdInstr first;
-    if(fd_decode(buf, size, 64, 0, &first) < 0)
-        return (struct MacroInst){-1, 0};
-    for (size_t i = 0; i < sizeof(mfns) / sizeof(mfns[0]); i++) {
-        struct MacroInst mi = mfns[i](v, buf, size, &first);
-        if (mi.size > 0)
-            return mi;
-    }
+static struct MacroInst macroinst(struct Verifier *v, uint8_t *buf, size_t size, FdInstr *first) {
+#define MACROINST(FN)             \
+    mi = FN(v, buf, size, first); \
+    if (mi.size > 0)              \
+        return mi;
+
+    struct MacroInst mi;
+
+    MACROINST(macroinst_store_two);
+    MACROINST(macroinst_store_pext);
+    MACROINST(macroinst_store_three);
+    MACROINST(macroinst_store_pext_multi);
+    MACROINST(macroinst_load);
+    MACROINST(macroinst_load_two);
+    MACROINST(macroinst_jmp);
+    MACROINST(macroinst_call);
+    MACROINST(macroinst_rtcall);
+    MACROINST(macroinst_modsp);
+    MACROINST(macroinst_stos);
+    MACROINST(macroinst_movs);
+    MACROINST(macroinst_hlt);
+
     return (struct MacroInst){-1, 0};
 }
