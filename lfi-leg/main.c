@@ -114,6 +114,8 @@ parse_opt(int key, char* arg, struct argp_state* state)
             args->boxtype = BOX_BUNDLEJUMPS;
         else if (strcmp(arg, "branches") == 0)
             args->boxtype = BOX_BRANCHES;
+        else if (strcmp(arg, "stores-only") == 0)
+            args->boxtype = BOX_STORESONLY;
         else if (strcmp(arg, "syscalls") == 0)
             args->boxtype = BOX_SYSCALLS;
         else if (strcmp(arg, "none") == 0)

@@ -11,11 +11,12 @@ enum cfi {
 enum boxtype {
     BOX_NONE        = 0,
     BOX_SYSCALLS    = 1,
-    BOX_BRANCHES    = 2,
-    BOX_BUNDLEJUMPS = 3,
-    BOX_JUMPS       = 4,
-    BOX_STORES      = 5,
-    BOX_FULL        = 6,
+    BOX_STORESONLY  = 2,
+    BOX_BRANCHES    = 3,
+    BOX_BUNDLEJUMPS = 4,
+    BOX_JUMPS       = 5,
+    BOX_STORES      = 6,
+    BOX_FULL        = 7,
 };
 
 enum meter {

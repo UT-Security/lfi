@@ -67,10 +67,12 @@ amd64_rewrite(FILE* input, struct output* output)
         passes[i].disabled = false;
         if (args.boxtype < BOX_FULL && passes[i].fn == &amd64_loadspass)
             passes[i].disabled = true;
-        if (args.boxtype < BOX_STORES && passes[i].fn == &amd64_storespass)
-            passes[i].disabled = true;
-        if (args.boxtype < BOX_STORES && passes[i].fn == &amd64_specialpass)
-            passes[i].disabled = true;
+        if (args.boxtype < BOX_STORES && passes[i].fn == &amd64_storespass &&
+            args.boxtype != BOX_STORESONLY)
+          passes[i].disabled = true;
+        if (args.boxtype < BOX_STORES && passes[i].fn == &amd64_specialpass &&
+            args.boxtype != BOX_STORESONLY)
+          passes[i].disabled = true;
         if (args.boxtype < BOX_BRANCHES && passes[i].fn == &amd64_branchpass)
             passes[i].disabled = true;
         if (args.poc && passes[i].fn == &amd64_pocpass)
