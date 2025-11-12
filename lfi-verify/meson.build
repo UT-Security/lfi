@@ -16,7 +16,6 @@ c_defines += '-DARCH_ARM64'
 c_defines += '-DARCH_X64'
 c_defines += '-DARCH_RISCV64'
 c_defines += '-ggdb'
-c_defines += '-O0'
 
 liblfiv = static_library(
   'lfiv',

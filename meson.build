@@ -19,7 +19,6 @@ c_args_hardened = [
   '-Werror=incompatible-pointer-types',
   '-Werror=int-conversion',
   '-ggdb',
-  '-O0',
 ]
 
 c_args_warnings = [

@@ -22,6 +22,12 @@ enum {
     ERRMAX = 128,
 };
 
+typedef struct {
+    FdInstr instrs[32];
+    bool valid[32];
+    size_t size;
+} FdInstrBundle;
+
 static void verrmin(struct Verifier *v, const char* fmt, ...) {
     v->failed = true;
 
@@ -210,7 +216,7 @@ static bool branchto(struct Verifier *v, int64_t target, FdInstr* insn) {
 
 #include "macroinst.c"
 
-static void vchkins(struct Verifier *v, uint8_t* buf, size_t size, struct MacroInst* mi);
+static void vchkins(struct Verifier *v, uint8_t* buf, size_t size, FdInstrBundle *bundle, size_t idx, struct MacroInst* mi);
 
 struct VerifierWork {
     uint8_t* cur;
@@ -303,7 +309,7 @@ struct VerifierWork* process_work(struct Verifier *v, struct VerifierWork* vw) {
                 v->addr = old_addr;
                 return ret;
             } else {
-                vchkins(v, &buf[count], size - count, &mi);
+                /* vchkins(v, &buf[count], size - count, &mi); */
             }
         }
         v->addr += mi.size;
@@ -339,7 +345,7 @@ static bool chkbranch(struct Verifier *v, FdInstr *instr, uint8_t* buf, size_t s
     bool branch = branchinfo(v, instr, &target, &indirect, &cond);
     if (branch && !indirect) {
         if (target % v->bundlesize != 0) {
-            chkunaligned(v, target, buf, size);
+            /* chkunaligned(v, target, buf, size); */
             //verrmin(v, "%lx : unaligned branch", v->addr);
         }
     } else if (branch && indirect) {
@@ -349,34 +355,28 @@ static bool chkbranch(struct Verifier *v, FdInstr *instr, uint8_t* buf, size_t s
 }
 
 // returns false if we're at an unconditional branch
-static void vchkins(struct Verifier *v, uint8_t* buf, size_t size, struct MacroInst* mi) {
+static void vchkins(struct Verifier *v, uint8_t *buf, size_t size, FdInstrBundle *bundle, size_t idx, struct MacroInst* mi) {
     size_t bundlesize = v->bundlesize;
-    FdInstr instr;
-    int ret = fd_decode(buf, size, 64, 0, &instr);
-    *mi = macroinst(v, buf, size, &instr);
+    *mi = macroinst(v, bundle, idx);
     if (mi->size < 0) {
-        if (ret < 0) {
-            verrmin(v, "%lx: unknown instruction", v->addr);
-            exit(-1);
-            //return;
-        }
-        mi->size = ret;
+        FdInstr *instr = &bundle->instrs[idx];
+        mi->size = instr->size;
         mi->ninstr = 1;
 
-        if (!okmnem(v, &instr)) {
-            verr(v, &instr, "illegal instruction");
-        }
-
-        chkmem(v, &instr);
-        chkmod(v, &instr);
-        if(chkbranch(v, &instr, buf, size)) {
+        /* if (!okmnem(v, instr)) { */
+        /*     verr(v, instr, "illegal instruction"); */
+        /* } */
+        /*  */
+        /* chkmem(v, instr); */
+        /* chkmod(v, instr); */
+        if(chkbranch(v, instr, buf, size)) {
             //skip over the rest of the instructions
-            size_t bundle_off = (bundlesize - (v->addr % bundlesize));
-            if(bundle_off > size) {
-                mi->size = size;
-            } else {
-                mi->size = (bundlesize - (v->addr % bundlesize));
-            }
+            /* size_t bundle_off = (bundlesize - (v->addr % bundlesize)); */
+            /* if(bundle_off > size) { */
+            /*     mi->size = size; */
+            /* } else { */
+            /*     mi->size = (bundlesize - (v->addr % bundlesize)); */
+            /* } */
         }
     }
 }
@@ -386,8 +386,24 @@ static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
     size_t ninstr = 0;
     struct MacroInst mi;
 
+    FdInstrBundle bundle = {};
+
+    size_t i = 0;
     while (count < v->bundlesize && count < size) {
-        vchkins(v, &buf[count], size - count, &mi);
+        int ret = fd_decode(&buf[count], size - count, 64, 0, &bundle.instrs[i]);
+        if (ret < 0) {
+            verrmin(v, "%lx: unknown instruction", v->addr + count);
+        }
+        count += ret;
+        bundle.valid[i] = true;
+        bundle.size++;
+        i++;
+    }
+
+    count = 0;
+    i = 0;
+    while (i < bundle.size) {
+        vchkins(v, buf, size, &bundle, i, &mi);
         if (count + mi.size > v->bundlesize) {
             FdInstr instr;
             fd_decode(&buf[count], size - count, 64, 0, &instr);
@@ -401,6 +417,7 @@ static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
         v->addr += mi.size;
         count += mi.size;
         ninstr += mi.ninstr;
+        i += mi.ninstr;
     }
     return ninstr;
 }
