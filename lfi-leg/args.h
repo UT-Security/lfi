@@ -58,6 +58,7 @@ struct arguments {
     bool largeguard;
     bool zerobase;
     bool usecall;
+    bool noforwardmask;
 };
 
 extern struct arguments args;

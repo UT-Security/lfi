@@ -183,6 +183,13 @@ bundle_mask(const char* reg)
 }
 
 static void
+forward_bundle_mask(const char* reg)
+{
+    if (args.noforwardmask) return;
+    bundle_mask(reg);
+}
+
+static void
 bundle_nop_indcall()
 {
     // If bundlecall was used, we don't insert call padding before the call.

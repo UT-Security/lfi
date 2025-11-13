@@ -31,6 +31,7 @@ enum {
     ARG_largeguard    = 0x91,
     ARG_zerobase      = 0x92,
     ARG_usecall       = 0x93,
+    ARG_noforwardmask = 0x94,
 };
 
 // options (TODO):
@@ -71,6 +72,7 @@ static struct argp_option options[] = {
     { "large-guard",    ARG_largeguard,    0,      0, "Assume large guard pages" },
     { "zero-base",      ARG_zerobase,      0,      0, "Store zero in base register (used only for testing)" },
     { "use-call",       ARG_usecall,       0,      0, "Allow call instructions for x86-64" },
+    { "no-forwardmask", ARG_noforwardmask, 0,      0, "Do not mask forward indirect calls and jmp" },
     { 0 },
 };
 
@@ -151,6 +153,9 @@ parse_opt(int key, char* arg, struct argp_state* state)
         break;
     case ARG_usecall:
         args->usecall = true;
+        break;
+    case ARG_noforwardmask:
+        args->noforwardmask = true;
         break;
     case ARG_meter:
         if (strcmp(arg, "branch") == 0)

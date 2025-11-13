@@ -15,7 +15,7 @@ Top = Branch | BranchMem | CallTLS | CallIndNoSP | CallInd | CallIndMem | Call |
 CallIndNoSP = 'call' 'q'? SEP '*' r:XREG_NOSP {
     if (args.usecall) {
         mkdirective(bundle_lock());
-        bundle_mask(r.val);
+        forward_bundle_mask(r.val);
         mkinsn("callq *%s", r.val);
         mkdirective(bundle_unlock());
         mkdirective(bundle_align());
@@ -24,7 +24,7 @@ CallIndNoSP = 'call' 'q'? SEP '*' r:XREG_NOSP {
         mkinsn("lea %sf(%%rip), %%r11", funcret);
         mkinsn("pushq %%r11");
         mkdirective(bundle_lock());
-        bundle_mask(r.val);
+        forward_bundle_mask(r.val);
         mkinsn("jmpq *%s", r.val);
         mkdirective(bundle_unlock());
         mkdirective(bundle_align());
@@ -36,7 +36,7 @@ CallIndNoSP = 'call' 'q'? SEP '*' r:XREG_NOSP {
 CallInd = 'call' 'q'? SEP '*' r:XREG {
     if(args.usecall) {
         mkdirective(bundle_lock());
-        bundle_mask(r.val);
+        forward_bundle_mask(r.val);
         mkinsn("callq *%s", r.val);
         mkdirective(bundle_unlock());
         mkdirective(bundle_align());
@@ -47,7 +47,7 @@ CallInd = 'call' 'q'? SEP '*' r:XREG {
         mkinsn("lea %sf(%%rip), %%rax", funcret);
         mkinsn("xchg %%rax, (%%rsp)");
         mkdirective(bundle_lock());
-        bundle_mask("%r11");
+        forward_bundle_mask("%r11");
         mkinsn("jmpq *%%r11");
         mkdirective(bundle_unlock());
         mkdirective(bundle_align());
@@ -77,7 +77,7 @@ CallIndMem = 'call' 'q'? SEP '*' a:Addr {
         if (args.bundlecall)
             mkdirective(bundle_align());
         mkdirective(bundle_lock());
-        bundle_mask("%r11");
+        forward_bundle_mask("%r11");
         bundle_nop_indcall();
         mkinsn("callq *%%r11");
         mkdirective(bundle_unlock());
@@ -93,7 +93,7 @@ CallIndMem = 'call' 'q'? SEP '*' a:Addr {
             mkpost(a);
         }
         mkdirective(bundle_lock());
-        bundle_mask("%r11");
+        forward_bundle_mask("%r11");
         mkinsn("jmpq *%%r11");
         mkdirective(bundle_unlock());
         mkdirective(bundle_align());
@@ -110,7 +110,7 @@ CallIndMem = 'call' 'q'? SEP '*' a:Addr {
         mkinsn("lea %sf(%%rip), %%rax", funcret);
         mkinsn("xchg %%rax, (%%rsp)");
         mkdirective(bundle_lock());
-        bundle_mask("%r11");
+        forward_bundle_mask("%r11");
         mkinsn("jmpq *%%r11");
         mkdirective(bundle_unlock());
         mkdirective(bundle_align());
@@ -162,7 +162,7 @@ BranchMem = j:JMP - '*' a:Addr {
             mkpost(a);
         }
         mkdirective(bundle_lock());
-        bundle_mask("%r11");
+        forward_bundle_mask("%r11");
         mkinsn("%s *%%r11", j.val);
         mkdirective(bundle_unlock());
     }
@@ -175,13 +175,13 @@ Branch = j:JMP '*' r:XREG {
     } else {
         if (!args.poc) {
             mkdirective(bundle_lock());
-            bundle_mask(r.val);
+            forward_bundle_mask(r.val);
             mkinsn("%s *%s", j.val, r.val);
             mkdirective(bundle_unlock());
         } else {
             mkinsn("movq %s, %%r11", r.val);
             mkdirective(bundle_lock());
-            bundle_mask("%r11");
+            forward_bundle_mask("%r11");
             mkinsn("%s *%%r11", j.val);
             mkdirective(bundle_unlock());
         }   
