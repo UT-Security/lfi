@@ -123,9 +123,10 @@ static struct MacroInst macroinst_movs(struct Verifier *v, FdInstrBundle *bundle
         }
     }
 
-    if (!bundle->valid[idx + 2])
+    uint32_t mov_idx = storesonly ? idx + 2 : idx + 4;
+    if (!bundle->valid[mov_idx])
         return (struct MacroInst){-1, 0};
-    i_movs = bundle->instrs[idx + 2];
+    i_movs = bundle->instrs[mov_idx];
     offset += i_movs.size;
     icount++;
     if (FD_TYPE(&i_movs) != FDI_MOVS) {
@@ -755,6 +756,7 @@ static struct MacroInst macroinst(struct Verifier *v, FdInstrBundle *bundle, siz
     MACROINST(macroinst_store_pext);
     MACROINST(macroinst_store_three);
     MACROINST(macroinst_store_pext_multi);
+    MACROINST(macroinst_load_two);
     MACROINST(macroinst_jmp);
     MACROINST(macroinst_call);
     MACROINST(macroinst_rtcall);

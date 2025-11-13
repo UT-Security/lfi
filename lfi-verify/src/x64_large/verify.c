@@ -253,6 +253,9 @@ struct VerifierWork* make_work(struct Verifier *v, int64_t target, uint8_t* buf,
     vw->start = target;
     vw->cur_addr = target;
     size_t realsize;
+    if(target > (v->addr + size)) {
+        verrmin(v, "%lx : Invalid branch target", v->addr);
+    }
     if(target > v->addr) {
         realsize = size - abs(target - (int64_t)v->addr);
     } else {
@@ -285,14 +288,27 @@ struct VerifierWork* process_work(struct Verifier *v, struct VerifierWork* vw) {
     //we need to set v->addr here or branch calculations will be misaligned
     uint64_t old_addr = v->addr;
     v->addr = vw->cur_addr;
+    FdInstrBundle bund = {};
+    bund.size = 0;
+    int i = 0;
     while(count < size) {
-        int len = fd_decode(&buf[count], size-count, 64, 0, &cur);
+        int len = fd_decode(&buf[count], size-count, 64, 0, &bund.instrs[i]);
         if(len < 0) {
             verrmin(v, "%lx: unknown instruction", v->addr);
             exit(-1);
         }
-        if(alreadyChecked(v, vw, &cur, &next_target, &b_and_uncond)) {
+        count += len;
+        bund.valid[i] = true;
+        bund.size++;
+        i++;
+    }
+    count = 0;
+    i = 0;
+    while(count < size) {
+        int len = FD_SIZE(&bund.instrs[i]);
+        if(alreadyChecked(v, vw, &bund.instrs[i], &next_target, &b_and_uncond)) {
             mi.size = len;
+            mi.ninstr = 1;
         } else {
             if(next_target) {
                 //add new work to the verifier, and return
@@ -309,11 +325,12 @@ struct VerifierWork* process_work(struct Verifier *v, struct VerifierWork* vw) {
                 v->addr = old_addr;
                 return ret;
             } else {
-                /* vchkins(v, &buf[count], size - count, &mi); */
+                 vchkins(v, &buf[count], size - count, &bund, i, &mi);
             }
         }
         v->addr += mi.size;
         count += mi.size;
+        i += mi.ninstr;
         if(b_and_uncond) break;
     }
     v->addr = old_addr;
@@ -345,7 +362,7 @@ static bool chkbranch(struct Verifier *v, FdInstr *instr, uint8_t* buf, size_t s
     bool branch = branchinfo(v, instr, &target, &indirect, &cond);
     if (branch && !indirect) {
         if (target % v->bundlesize != 0) {
-            /* chkunaligned(v, target, buf, size); */
+             chkunaligned(v, target, buf, size);
             //verrmin(v, "%lx : unaligned branch", v->addr);
         }
     } else if (branch && indirect) {
@@ -403,7 +420,7 @@ static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
     count = 0;
     i = 0;
     while (i < bundle.size) {
-        vchkins(v, buf, size, &bundle, i, &mi);
+        vchkins(v, &buf[count], size, &bundle, i, &mi);
         if (count + mi.size > v->bundlesize) {
             FdInstr instr;
             fd_decode(&buf[count], size - count, 64, 0, &instr);
