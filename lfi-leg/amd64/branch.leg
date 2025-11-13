@@ -161,10 +161,10 @@ BranchMem = j:JMP - '*' a:Addr {
             mkinsn("movq %s, %%r11", a.val);
             mkpost(a);
         }
-        mkdirective(".bundle_lock");
+        mkdirective(bundle_lock());
         bundle_mask("%r11");
         mkinsn("%s *%%r11", j.val);
-        mkdirective(".bundle_unlock");
+        mkdirective(bundle_unlock());
     }
     rfree(j); rfree(a);
 }
@@ -174,16 +174,16 @@ Branch = j:JMP '*' r:XREG {
         mkinsn("%s *%s", j.val, r.val);
     } else {
         if (!args.poc) {
-            mkdirective(".bundle_lock");
+            mkdirective(bundle_lock());
             bundle_mask(r.val);
             mkinsn("%s *%s", j.val, r.val);
-            mkdirective(".bundle_unlock");
+            mkdirective(bundle_unlock());
         } else {
             mkinsn("movq %s, %%r11", r.val);
-            mkdirective(".bundle_lock");
+            mkdirective(bundle_lock());
             bundle_mask("%r11");
             mkinsn("%s *%%r11", j.val);
-            mkdirective(".bundle_unlock");
+            mkdirective(bundle_unlock());
         }   
     }
     rfree(j); rfree(r);
@@ -197,10 +197,10 @@ Ret = 'ret' 'q'? - {
     if (args.useret) {
         mkinsn("ret");
     } else if (args.singlethread && args.boxtype <= BOX_BUNDLEJUMPS) {
-        mkdirective(".bundle_lock");
+        mkdirective(bundle_lock());
         mkinsn("andq $0xffffffff%s, (%%rsp)", bundle_mask_constant());
         mkinsn("ret");
-        mkdirective(".bundle_unlock");
+        mkdirective(bundle_unlock());
     } else {
         mkinsn("popq %%r11");
         mkdirective(bundle_lock());

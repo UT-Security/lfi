@@ -25,13 +25,13 @@ mask(const char* reg)
 Top = (Stos | Movs | Cmp | Xchg | Lea | Triple2 | StoreH | Store | Access) !.
 
 Stos = s:STOS rest:REMAINDER {
-    mkdirective(".bundle_lock");
+    mkdirective(bundle_lock());
     mask("%rdi");
     mkinsn("%s%s", s.val, rest.val);
     if (args.poc) {
         mkinsn("movl %%edi, %%edi");
     }
-    mkdirective(".bundle_unlock");
+    mkdirective(bundle_unlock());
     rfree(s); rfree(rest);
 }
 
@@ -40,7 +40,7 @@ STOS = < ('rep' [ \t\r\n;]+)? 'stos' [qlb] > &(SEP | !.) {
 }
 
 Movs = m:MOVS rest:REMAINDER {
-    mkdirective(".bundle_lock");
+    mkdirective(bundle_lock());
     mask("%rdi");
     if (args.boxtype >= BOX_FULL)
         mask("%rsi");
@@ -49,7 +49,7 @@ Movs = m:MOVS rest:REMAINDER {
         mkinsn("movl %%edi, %%edi");
         mkinsn("movl %%esi, %%esi");
     }
-    mkdirective(".bundle_unlock");
+    mkdirective(bundle_unlock());
     rfree(m); rfree(rest);
 }
 

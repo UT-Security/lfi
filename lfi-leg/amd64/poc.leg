@@ -76,10 +76,10 @@ MovGot = 'mov' 'q'? SEP n:NAME '@GOTPCREL(%rip)' COMMA r:XREG {
 }
 
 AddRsp = 'add' 'q'? SEP '%rsp' COMMA r:XREG {
-    mkdirective(".bundle_lock");
+    mkdirective(bundle_lock());
     mkinsn("movl %%esp, %%r11d");
     mkinsn("addq %%r11, %s", r.val);
-    mkdirective(".bundle_unlock");
+    mkdirective(bundle_unlock());
     rfree(r);
 }
 

@@ -20,30 +20,30 @@ ShiftInsn = (
         rfree(x1); rfree(x2);
     }
     | (s:ShiftL SEP '%cl' - COMMA x1:REG COMMA x2:REG) {
-        mkdirective(".bundle_lock");
+        mkdirective(bundle_lock());
         mkinsn("movq %%rcx, %%r11");
         mkinsn("andb $0x1f, %%cl");
         mkinsn("%s %%cl, %s, %s", s.val, x1.val, x2.val);
         mkinsn("movq %%r11, %%rcx");
-        mkdirective(".bundle_unlock");
+        mkdirective(bundle_unlock());
         rfree(x1); rfree(x2);
     }
     | (s:ShiftW SEP '%cl' - COMMA x1:REG COMMA x2:REG) {
-        mkdirective(".bundle_lock");
+        mkdirective(bundle_lock());
         mkinsn("movq %%rcx, %%r11");
         mkinsn("andb $0xf, %%cl");
         mkinsn("%s %%cl, %s, %s", s.val, x1.val, x2.val);
         mkinsn("movq %%r11, %%rcx");
-        mkdirective(".bundle_unlock");
+        mkdirective(bundle_unlock());
         rfree(x1); rfree(x2);
     }
     | (s:ShiftB SEP '%cl' - COMMA x1:REG COMMA x2:REG) {
-        mkdirective(".bundle_lock");
+        mkdirective(bundle_lock());
         mkinsn("movq %%rcx, %%r11");
         mkinsn("andb $0x7, %%cl");
         mkinsn("%s %%cl, %s, %s", s.val, x1.val, x2.val);
         mkinsn("movq %%r11, %%rcx");
-        mkdirective(".bundle_unlock");
+        mkdirective(bundle_unlock());
         rfree(x1); rfree(x2);
     }
 )
@@ -56,11 +56,11 @@ ShiftB = < Shift 'b' > { $$ = (Result) { .val = strndup(yytext, yyleng) } }
 Shift = ('shrd' | 'shld')
 
 BsInsn = insn:Bs SEP src:REG COMMA dst:REG {
-    mkdirective(".bundle_lock");
+    mkdirective(bundle_lock());
     mkinsn("test %s, %s", src.val, src.val);
     mkinsn("jz 1024f");
     mkinsn("%s %s, %s", insn.val, src.val, dst.val);
-    mkdirective(".bundle_unlock");
+    mkdirective(bundle_unlock());
     mkinsn("1024:");
 }
 
