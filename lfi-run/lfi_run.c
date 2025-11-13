@@ -145,7 +145,7 @@ main(int argc, char** argv)
 
     struct LFIPlatform* plat = lfi_new_plat((struct LFIPlatOptions) {
         .pagesize = pagesize,
-        .vmsize = gb(256),
+        .vmsize = gb(512),
         .poc = args.poc,
     });
 

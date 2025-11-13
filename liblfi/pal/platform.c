@@ -24,13 +24,13 @@ lfi_new_plat(struct LFIPlatOptions opts)
         goto err1;
 
     struct BoxMap* bm = boxmap_new((struct BoxMapOptions) {
-        .minalign = gb(256),
-        .maxalign = gb(256),
-        .guardsize = gb(4),
+        .minalign = gb(512),
+        .maxalign = gb(512),
+        .guardsize = gb(0),
     });
     verifier->opts = (struct LFIVOptions) {
         .box = LFI_BOX_STORES,
-        .guardsize = gb(4),
+        .guardsize = gb(2),
         .err = showerr
     };
     verifier->verify = lfiv_verify_x64_large;

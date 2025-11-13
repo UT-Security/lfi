@@ -22,6 +22,12 @@ enum {
     ERRMAX = 128,
 };
 
+typedef struct {
+    FdInstr instrs[32];
+    bool valid[32];
+    size_t size;
+} FdInstrBundle;
+
 static void verrmin(struct Verifier *v, const char* fmt, ...) {
     v->failed = true;
 
@@ -210,7 +216,7 @@ static bool branchto(struct Verifier *v, int64_t target, FdInstr* insn) {
 
 #include "macroinst.c"
 
-static void vchkins(struct Verifier *v, uint8_t* buf, size_t size, struct MacroInst* mi);
+static void vchkins(struct Verifier *v, uint8_t* buf, size_t size, FdInstrBundle *bundle, size_t idx, struct MacroInst* mi);
 
 struct VerifierWork {
     uint8_t* cur;
@@ -242,11 +248,23 @@ static bool alreadyChecked(struct Verifier *v, struct VerifierWork* cur,
     return false;
 }
 
+static bool stop_control_flow(struct Verifier *v, FdInstr *instr) {
+    int64_t target;
+    bool indirect, cond;
+    bool branch = branchinfo(v, instr, &target, &indirect, &cond);
+    return (branch && !cond) || (FD_TYPE(instr) == FDI_HLT);
+}
+
 struct VerifierWork* make_work(struct Verifier *v, int64_t target, uint8_t* buf, size_t size) {
     struct VerifierWork* vw = malloc(sizeof(*vw));
     vw->start = target;
     vw->cur_addr = target;
     size_t realsize;
+    /*
+    if(target > (v->addr + size)) {
+        verrmin(v, "%lx : Invalid branch target", v->addr);
+    }
+    */
     if(target > v->addr) {
         realsize = size - abs(target - (int64_t)v->addr);
     } else {
@@ -279,14 +297,32 @@ struct VerifierWork* process_work(struct Verifier *v, struct VerifierWork* vw) {
     //we need to set v->addr here or branch calculations will be misaligned
     uint64_t old_addr = v->addr;
     v->addr = vw->cur_addr;
+    FdInstrBundle bund = {};
+    bund.size = 0;
+    int i = 0;
     while(count < size) {
-        int len = fd_decode(&buf[count], size-count, 64, 0, &cur);
+        int len = fd_decode(&buf[count], size-count, 64, 0, &bund.instrs[i]);
         if(len < 0) {
             verrmin(v, "%lx: unknown instruction", v->addr);
             exit(-1);
         }
-        if(alreadyChecked(v, vw, &cur, &next_target, &b_and_uncond)) {
+        count += len;
+        bund.valid[i] = true;
+        bund.size++;
+        i++;
+        bool cf_break;
+        if(cf_break = stop_control_flow(v, &bund.instrs[i-1])) {
+            size = count;
+            break;
+        }
+    }
+    count = 0;
+    i = 0;
+    while(count < size) {
+        int len = FD_SIZE(&bund.instrs[i]);
+        if(alreadyChecked(v, vw, &bund.instrs[i], &next_target, &b_and_uncond)) {
             mi.size = len;
+            mi.ninstr = 1;
         } else {
             if(next_target) {
                 //add new work to the verifier, and return
@@ -303,11 +339,12 @@ struct VerifierWork* process_work(struct Verifier *v, struct VerifierWork* vw) {
                 v->addr = old_addr;
                 return ret;
             } else {
-                vchkins(v, &buf[count], size - count, &mi);
+                 vchkins(v, &buf[count], size - count, &bund, i, &mi);
             }
         }
         v->addr += mi.size;
         count += mi.size;
+        i += mi.ninstr;
         if(b_and_uncond) break;
     }
     v->addr = old_addr;
@@ -333,13 +370,14 @@ static void chkunaligned(struct Verifier *v, int64_t target, uint8_t* buf, size_
     }
 }
 
+
 static bool chkbranch(struct Verifier *v, FdInstr *instr, uint8_t* buf, size_t size) {
     int64_t target;
     bool indirect, cond;
     bool branch = branchinfo(v, instr, &target, &indirect, &cond);
     if (branch && !indirect) {
         if (target % v->bundlesize != 0) {
-            chkunaligned(v, target, buf, size);
+             chkunaligned(v, target, buf, size);
             //verrmin(v, "%lx : unaligned branch", v->addr);
         }
     } else if (branch && indirect) {
@@ -349,34 +387,29 @@ static bool chkbranch(struct Verifier *v, FdInstr *instr, uint8_t* buf, size_t s
 }
 
 // returns false if we're at an unconditional branch
-static void vchkins(struct Verifier *v, uint8_t* buf, size_t size, struct MacroInst* mi) {
+static void vchkins(struct Verifier *v, uint8_t *buf, size_t size, FdInstrBundle *bundle, size_t idx, struct MacroInst* mi) {
     size_t bundlesize = v->bundlesize;
-    FdInstr instr;
-    int ret = fd_decode(buf, size, 64, 0, &instr);
-    *mi = macroinst(v, buf, size, &instr);
+    *mi = macroinst(v, bundle, idx);
     if (mi->size < 0) {
-        if (ret < 0) {
-            verrmin(v, "%lx: unknown instruction", v->addr);
-            exit(-1);
-            //return;
-        }
-        mi->size = ret;
+        FdInstr *instr = &bundle->instrs[idx];
+        mi->size = instr->size;
         mi->ninstr = 1;
 
-        if (!okmnem(v, &instr)) {
-            verr(v, &instr, "illegal instruction");
+        if (!okmnem(v, instr)) {
+            verr(v, instr, "illegal instruction");
         }
 
-        chkmem(v, &instr);
-        chkmod(v, &instr);
-        if(chkbranch(v, &instr, buf, size)) {
-            //skip over the rest of the instructions
-            size_t bundle_off = (bundlesize - (v->addr % bundlesize));
-            if(bundle_off > size) {
-                mi->size = size;
-            } else {
-                mi->size = (bundlesize - (v->addr % bundlesize));
-            }
+        chkmem(v, instr);
+        chkmod(v, instr);
+        if(chkbranch(v, instr, buf, size)) {
+             //skip over the rest of the instructions
+             size_t bundle_off = (bundlesize - (v->addr % bundlesize)); 
+             if(bundle_off > size) { 
+                 mi->size = size; 
+             } else { 
+                 mi->size = (bundlesize - (v->addr % bundlesize)); 
+             } 
+            mi->ninstr = (bundle->size - idx);
         }
     }
 }
@@ -385,9 +418,29 @@ static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
     size_t count = 0;
     size_t ninstr = 0;
     struct MacroInst mi;
+    bool cf_break = false;
 
+    FdInstrBundle bundle = {};
+
+    size_t i = 0;
     while (count < v->bundlesize && count < size) {
-        vchkins(v, &buf[count], size - count, &mi);
+        int ret = fd_decode(&buf[count], size - count, 64, 0, &bundle.instrs[i]);
+        if (ret < 0) {
+            verrmin(v, "%lx: unknown instruction", v->addr + count);
+        }
+        count += ret;
+        bundle.valid[i] = true;
+        bundle.size++;
+        i++;
+        if(cf_break = stop_control_flow(v, &bundle.instrs[i-1])) {
+            break;
+        }
+    }
+
+    count = 0;
+    i = 0;
+    while (i < bundle.size) {
+        vchkins(v, &buf[count], size, &bundle, i, &mi);
         if (count + mi.size > v->bundlesize) {
             FdInstr instr;
             fd_decode(&buf[count], size - count, 64, 0, &instr);
@@ -401,6 +454,12 @@ static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
         v->addr += mi.size;
         count += mi.size;
         ninstr += mi.ninstr;
+        i += mi.ninstr;
+    }
+    if(cf_break) {
+        uint32_t bundlesize = v->bundlesize;
+        v->addr += bundlesize - (v->addr % bundlesize);
+        //don't have to inc bundlesize, that's functionally baked in already
     }
     return ninstr;
 }
