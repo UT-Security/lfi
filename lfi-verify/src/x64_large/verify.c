@@ -387,13 +387,14 @@ static void vchkins(struct Verifier *v, uint8_t *buf, size_t size, FdInstrBundle
         chkmem(v, instr);
         chkmod(v, instr);
         if(chkbranch(v, instr, buf, size)) {
-            //skip over the rest of the instructions
-            /* size_t bundle_off = (bundlesize - (v->addr % bundlesize)); */
-            /* if(bundle_off > size) { */
-            /*     mi->size = size; */
-            /* } else { */
-            /*     mi->size = (bundlesize - (v->addr % bundlesize)); */
-            /* } */
+             //skip over the rest of the instructions
+             size_t bundle_off = (bundlesize - (v->addr % bundlesize)); 
+             if(bundle_off > size) { 
+                 mi->size = size; 
+             } else { 
+                 mi->size = (bundlesize - (v->addr % bundlesize)); 
+             } 
+            mi->ninstr = (bundle->size - idx);
         }
     }
 }
