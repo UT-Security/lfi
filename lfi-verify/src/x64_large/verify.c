@@ -260,11 +260,6 @@ struct VerifierWork* make_work(struct Verifier *v, int64_t target, uint8_t* buf,
     vw->start = target;
     vw->cur_addr = target;
     size_t realsize;
-    /*
-    if(target > (v->addr + size)) {
-        verrmin(v, "%lx : Invalid branch target", v->addr);
-    }
-    */
     if(target > v->addr) {
         realsize = size - abs(target - (int64_t)v->addr);
     } else {
@@ -440,7 +435,7 @@ static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
     count = 0;
     i = 0;
     while (i < bundle.size) {
-        vchkins(v, &buf[count], size, &bundle, i, &mi);
+        vchkins(v, &buf[count], size - count, &bundle, i, &mi);
         if (count + mi.size > v->bundlesize) {
             FdInstr instr;
             fd_decode(&buf[count], size - count, 64, 0, &instr);
