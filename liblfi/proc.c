@@ -3,9 +3,13 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <stdatomic.h>
+#include <syscall.h>
+#include <sys/mman.h>
 
 #include "arch_regs.h"
 #include "cwalk.h"
+#include "lfi.h"
+#include "mmap.h"
 #include "print.h"
 #include "fd.h"
 #include "buf.h"
@@ -15,10 +19,16 @@
 #include "pal/regs.h"
 
 #include "syscalls/syscalls.h"
+#include "types.h"
 
 static bool procsetup(struct TuxThread* p, uint8_t* prog, size_t progsz, uint8_t* interp, size_t interpsz, int argc, char** argv);
 static bool procfile(struct TuxThread* p, uint8_t* prog, size_t progsz, int argc, char** argv);
 static void procfree(struct TuxThread*);
+
+static int
+sys_memfd_create(const char* name, unsigned flags) {
+    return syscall(SYS_memfd_create, name, flags);
+}
 
 static int
 nexttid(void)
@@ -86,6 +96,7 @@ procnewfile(struct Tux* tux, uint8_t* prog, size_t size, int argc, char** argv)
         goto err2;
     p->proc->p_as = as;
     p->proc->p_info = lfi_as_info(as);
+    p->proc->p_jit_as = NULL;
     p->p_ctx = ctx;
 
     if (!procfile(p, prog, size, argc, argv))
@@ -275,6 +286,8 @@ procmapat(struct TuxProc* p, lfiptr_t start, size_t size, int prot, int flags,
         }
     }
     LOCK_WITH_DEFER(&p->lk_as, lk_as);
+    if (procjitvalid(p, start))
+        return -TUX_EINVAL;
     lfiptr_t addr = lfi_as_mapat(p->p_as, start, size, prot, flags, hf, offset);
     if (addr == (lfiptr_t) -1)
         return -TUX_EINVAL;
@@ -285,6 +298,8 @@ int
 procunmap(struct TuxProc* p, lfiptr_t start, size_t size)
 {
     LOCK_WITH_DEFER(&p->lk_as, lk_as);
+    if (procjitvalid(p, start))
+        return -TUX_EINVAL;
     return lfi_as_munmap(p->p_as, start, size);
 }
 
@@ -295,6 +310,160 @@ procfree(struct TuxThread* p)
     lfi_as_free(p->proc->p_as);
     free(p->proc);
     free(p);
+}
+
+int procmapjitcode(struct TuxProc* p, size_t exec_size, size_t data_size, lfiptr_t* o_mapstart) {
+    LOCK_WITH_DEFER(&p->lk_jit_as, lk_jit_as);
+    if (p->p_jit_as != NULL) {
+        return -TUX_EINVAL;
+    }
+
+    int fd = sys_memfd_create("", 0);
+    if (fd < 0) {
+        return -TUX_EINVAL;
+    }
+
+    //TODO: overflow check
+    size_t size = exec_size + data_size;
+    int r = ftruncate(fd, size);
+    if (r < 0) {
+        close(fd);
+        return -TUX_EINVAL;
+    }
+
+    void* aliasmap = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (aliasmap == (void*) -1) {
+        close(fd);
+        return -TUX_EINVAL;
+    }
+
+    struct HostFile* hf = lfi_host_fdopen(fd);
+    if (!hf) {
+        close(fd);
+        munmap(aliasmap, size);
+        return -TUX_EINVAL;
+    }
+
+    LOCK_WITH_DEFER(&p->lk_as, lk_as);
+    lfiptr_t addr = lfi_as_mapany(p->p_as, size, PROT_NONE, MAP_SHARED, hf, 0);
+    if (addr == (lfiptr_t) -1) {
+        close(fd);
+        munmap(aliasmap, size);
+        return -TUX_EINVAL;
+    }
+
+    struct LFIAddrSpace* jit_as = malloc(sizeof(struct LFIAddrSpace));
+    if (!jit_as) {
+        close(fd);
+        munmap(aliasmap, size);
+        return -TUX_EINVAL;
+    }
+
+    *jit_as = (struct LFIAddrSpace) {
+        .base = addr,
+        .size = size,
+        .minaddr = addr,
+        .maxaddr = addr + exec_size,
+        .plat = p->p_as->plat,
+    };
+
+    bool ok = mm_init(&jit_as->mm, jit_as->minaddr,
+                      jit_as->maxaddr - jit_as->minaddr, 32);
+    if (!ok) {
+        free(jit_as);
+        close(fd);
+        munmap(aliasmap, size);
+        return -TUX_EINVAL; 
+    }
+
+    p->p_jit_as = jit_as;
+    p->p_jit_info = lfi_as_info(jit_as);
+    p->jit_fd = fd;
+    p->jit_alias = (uint8_t*)aliasmap;
+    
+    *o_mapstart = (uintptr_t) addr;
+    return 0;
+}
+
+int
+procunmapjitcode(struct TuxProc* p, lfiptr_t start, size_t exec_size, size_t data_size)
+{
+    LOCK_WITH_DEFER(&p->lk_jit_as, lk_jit_as);
+    if (p->p_jit_as == NULL) {
+        return -TUX_EINVAL;
+    }
+
+    size_t size = exec_size + data_size;
+
+    if (p->p_jit_as->base != start || p->p_jit_as->size != size ||
+        p->p_jit_as->maxaddr != start + exec_size) {
+        return -TUX_EINVAL;
+    }
+
+    //TODO: maybe check that there are not live jit allocations.
+
+    struct LFIAddrSpace* jit_as = p->p_jit_as;
+    int jit_fd = p->jit_fd;
+    uint8_t* jit_alias = p->jit_alias;
+
+    p->p_jit_as = NULL;
+    p->jit_fd = -1;
+    p->jit_alias = NULL;
+
+    free(jit_as);
+
+    LOCK_WITH_DEFER(&p->lk_as, lk_as);
+    if(lfi_as_munmap(p->p_as, start, size) == -1) {
+        return -TUX_EINVAL;
+    }
+
+    if (munmap(jit_alias, size) != 0) {
+        return -TUX_EINVAL;
+    }
+
+    close(jit_fd);
+    return 0;
+}
+
+static void
+cbunmap_exec(uint64_t start, size_t len, MMInfo info, void* udata)
+{
+    (void) info;
+    struct TuxProc* p = (struct TuxProc*)udata;
+    memset(procjitcodeaddr(p, start), 0xcc, len);
+}
+
+int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size) {
+    LOCK_WITH_DEFER(&p->lk_jit_as, lk_jit_as);
+    if (p->p_jit_as == NULL) {
+        return -TUX_EINVAL;
+    }
+
+    if (!lfi_as_validptr(p->p_jit_as, dst) || !lfi_as_validptr(p->p_jit_as, dst + size)) {
+        return -TUX_EINVAL;
+    }
+
+    LOCK_WITH_DEFER(&p->lk_as, lk_as);
+    MMInfo info;
+    if(!mm_querypage(&p->p_as->mm, dst, &info)) {
+        return -TUX_EINVAL;
+    }
+
+    //TODO: maybe sanity expect the allocation to be currently READ | EXEC
+
+    lfi_as_mprotect_no_verify(p->p_as, info.base, info.len, LFI_PROT_NONE);
+
+    uintptr_t m_addr = mm_mapat_cb(
+        &p->p_jit_as->mm, l2p(p->p_jit_as, dst), size, LFI_PROT_READ,
+        LFI_MAP_FIXED | LFI_MAP_PRIVATE, NULL, 0, cbunmap_exec, p);
+    if (m_addr == (uintptr_t) -1) {
+        return -TUX_EINVAL;
+    }
+
+    memcpy(procjitcodeaddr(p, dst), src, size);
+    //TODO: call verifier on memcpyd range
+
+    lfi_as_mprotect_no_verify(p->p_as, info.base, info.len, LFI_PROT_EXEC | LFI_PROT_READ);
 }
 
 EXPORT struct TuxThread*

@@ -87,6 +87,8 @@ sys_mprotect(struct TuxProc* p, lfiptr_t addrp, size_t length, int prot)
     if (!procvalid(p, addrp))
         return -1;
     LOCK_WITH_DEFER(&p->lk_as, lk_as);
+    if (procjitvalid(p, addrp))
+        return -1;
     return lfi_as_mprotect(p->p_as, addrp, length, prot);
 }
 

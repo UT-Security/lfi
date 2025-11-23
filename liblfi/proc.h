@@ -95,7 +95,11 @@ struct TuxProc {
     struct LFIAddrSpace* p_as;
     lfiptr_t brkbase;
     size_t brksize;
+    struct LFIAddrSpace* p_jit_as;
+    int jit_fd;
+    uint8_t* jit_alias;
     pthread_mutex_t lk_as;
+    pthread_mutex_t lk_jit_as;
     pthread_mutex_t lk_brk;
 
     struct SigActionEntry signals[LINUX_NSIG];
@@ -109,6 +113,7 @@ struct TuxProc {
 
     struct Tux* tux;
     struct LFIAddrSpaceInfo p_info;
+    struct LFIAddrSpaceInfo p_jit_info;
     int pid;
 };
 
@@ -127,5 +132,11 @@ int procmapat(struct TuxProc* p, lfiptr_t start, size_t size, int prot, int flag
 int procmapany(struct TuxProc* p, size_t size, int prot, int flags, int fd, off_t offset, lfiptr_t* o_mapstart);
 
 int procunmap(struct TuxProc* p, lfiptr_t start, size_t size);
+
+int procmapjitcode(struct TuxProc* p, size_t exec_size, size_t data_size, lfiptr_t* o_mapstart);
+
+int procunmapjitcode(struct TuxProc* p, lfiptr_t start, size_t exec_size, size_t data_size);
+
+int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size);
 
 struct TuxThread* procnewthread(struct TuxThread* p);

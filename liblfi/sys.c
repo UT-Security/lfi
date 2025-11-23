@@ -4,6 +4,7 @@
 #include "sys.h"
 #include "syscalls/strace.h"
 #include "arch_sys.h"
+#include "syscalls/syscalls.h"
 
 #define SYS(SYSNO, expr)  \
     case TUX_SYS_##SYSNO: \
@@ -33,6 +34,10 @@ syshandle(struct TuxThread* p, uintptr_t sysno, uintptr_t a0, uintptr_t a1,
     SYS(mmap,              sys_mmap(proc, a0, a1, a2, a3, a4, a5))
     SYS(mprotect,          sys_mprotect(proc, a0, a1, a2))
     SYS(munmap,            sys_munmap(proc, a0, a1))
+    SYS(jitcode_mmap,      sys_jitcode_mmap(proc, a0, a1, a2))
+    SYS(jitcode_munmap,    sys_jitcode_munmap(proc, a0, a1, a2))
+    SYS(jitcode_commit,    sys_jitcode_commit(proc, a0, a1))
+    SYS(jitcode_decommit,  sys_jitcode_decommit(proc, a0, a1))
     SYS(getdents64,        sys_getdents64(proc, a0, a1, a2))
     SYS(newfstatat,        sys_newfstatat(proc, a0, a1, a2, a3))
     SYS(fstat,             sys_newfstatat(proc, a0, 0, a1, TUX_AT_EMPTY_PATH))

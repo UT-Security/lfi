@@ -158,6 +158,14 @@ lfi_as_mprotect(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot)
 }
 
 EXPORT int
+lfi_as_mprotect_no_verify(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot)
+{
+    assert(l2p(as, addr) >= as->minaddr && l2p(as, addr) + size <= as->maxaddr);
+
+    return protectverify(l2p(as, addr), size, prot, NULL);
+}
+
+EXPORT int
 lfi_as_munmap(struct LFIAddrSpace* as, lfiptr_t addr, size_t size)
 {
     if (l2p(as, addr) >= as->minaddr && l2p(as, addr) + size < as->maxaddr)

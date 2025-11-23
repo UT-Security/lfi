@@ -77,6 +77,7 @@ lfiptr_t                lfi_as_mapat(struct LFIAddrSpace* as, lfiptr_t addr, siz
 lfiptr_t                lfi_as_mapany(struct LFIAddrSpace* as, size_t size, int prot, int flags, struct HostFile* f, off_t off);
 int                     lfi_as_munmap(struct LFIAddrSpace* as, lfiptr_t addr, size_t size);
 int                     lfi_as_mprotect(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot);
+int                     lfi_as_mprotect_no_verify(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot);
 void                    lfi_as_copyfm(struct LFIAddrSpace* as, void* dst, lfiptr_t src, size_t size);
 void                    lfi_as_copyto(struct LFIAddrSpace* as, lfiptr_t dst, void* src, size_t size);
 void                    lfi_as_free(struct LFIAddrSpace* as);

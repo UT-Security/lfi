@@ -66,6 +66,17 @@ procpath(struct TuxProc* p, lfiptr_t pathp)
     return str;
 }
 
+static inline bool
+procjitvalid(struct TuxProc* p, lfiptr_t addr)
+{
+    return p->p_jit_as != NULL && lfi_as_validptr(p->p_jit_as, addr);
+}
+
+static inline uint8_t* procjitcodeaddr(struct TuxProc* p, lfiptr_t addr) {
+    assert(procjitvalid(p, addr));
+    return p->jit_alias + (addr - p->p_jit_info.minaddr);
+}
+
 ssize_t sys_write(struct TuxProc* p, int fd, lfiptr_t bufp, size_t size);
 
 int sys_getpid(struct TuxProc* p);
@@ -99,6 +110,20 @@ uintptr_t sys_mmap(struct TuxProc* p, lfiptr_t addrup, size_t length,
 int sys_mprotect(struct TuxProc* p, lfiptr_t addrup, size_t length, int prot);
 
 int sys_munmap(struct TuxProc* p, lfiptr_t addrup, size_t length);
+
+uintptr_t sys_jitcode_mmap(struct TuxProc* p, lfiptr_t addrup, size_t exec_length, size_t data_length);
+
+int sys_jitcode_create(struct TuxProc* p, lfiptr_t addrup, lfiptr_t bufp, size_t length);
+
+int sys_jitcode_create2(struct TuxProc* p, lfiptr_t addrup, lfiptr_t bufp1, size_t length1, lfiptr_t bufp2, size_t length2);
+
+int sys_jitcode_delete(struct TuxProc* p, lfiptr_t addrup, size_t length);
+
+int sys_jitcode_munmap(struct TuxProc* p, lfiptr_t addrup, size_t exec_length, size_t data_length);
+
+int sys_jitcode_commit(struct TuxProc* p, lfiptr_t addrup, size_t length);
+
+int sys_jitcode_decommit(struct TuxProc* p, lfiptr_t addrup, size_t length);
 
 ssize_t sys_readlinkat(struct TuxProc* p, int dirfd, lfiptr_t pathp, lfiptr_t bufp, size_t size);
 

@@ -91,8 +91,16 @@ enum {
     TUX_SYS_statx              = 332,
     TUX_SYS_rseq               = 334,
 
+    TUX_SYS_jitcode_mmap       = 441,
+    TUX_SYS_jitcode_create     = 442,
+    TUX_SYS_jitcode_delete     = 443,
+    TUX_SYS_jitcode_munmap     = 444,
+    TUX_SYS_jitcode_commit     = 445,
+    TUX_SYS_jitcode_decommit   = 446,
+    TUX_SYS_jitcode_create2    = 447,
+    
     // always last syscall+1
-    TUX_SYS_ntotal             = 335,
+    TUX_SYS_ntotal             = 448,
 };
 
 void arch_syshandle(struct LFIContext* ctx);
