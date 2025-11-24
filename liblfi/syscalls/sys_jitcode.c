@@ -44,7 +44,13 @@ int sys_jitcode_create2(struct TuxProc* p, lfiptr_t addrp, lfiptr_t bufp1, size_
   return r;
 }
 
-//int sys_jitcode_delete(struct TuxProc* p, lfiptr_t addrup, size_t length);
+int sys_jitcode_delete(struct TuxProc* p, lfiptr_t addrp, size_t length) {
+    if (!procjitvalid(p, addrp))
+        return -1;
+
+    return procdeletejitcode(p, addrp, length);
+  
+}
 
 int sys_jitcode_munmap(struct TuxProc* p, lfiptr_t addrp, size_t exec_length, size_t data_length) {
     if (exec_length == 0 || exec_length != ceilp(exec_length, p->tux->opts.pagesize))
@@ -63,7 +69,7 @@ int sys_jitcode_commit(struct TuxProc* p, lfiptr_t addrp, size_t length) {
         return -1;
     LOCK_WITH_DEFER(&p->lk_as, lk_as);
     //TODO: clear out page to be safe
-    return lfi_as_mprotect_no_verify(p->p_jit_as, addrp, length, LFI_PROT_EXEC);
+    return lfi_as_mprotect_no_verify(p->p_jit_as, addrp, length, LFI_PROT_READ | LFI_PROT_EXEC);
 }
 
 int sys_jitcode_decommit(struct TuxProc* p, lfiptr_t addrp, size_t length) {

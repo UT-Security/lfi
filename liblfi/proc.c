@@ -444,14 +444,14 @@ int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size
     }
 
     LOCK_WITH_DEFER(&p->lk_as, lk_as);
-    MMInfo info;
-    if(!mm_querypage(&p->p_as->mm, dst, &info)) {
-        return -TUX_EINVAL;
-    }
+    //MMInfo info;
+    //if(!mm_querypage(&p->p_as->mm, dst, &info)) {
+    //    return -TUX_EINVAL;
+    //}
 
     //TODO: maybe sanity expect the allocation to be currently READ | EXEC
 
-    lfi_as_mprotect_no_verify(p->p_as, info.base, info.len, LFI_PROT_NONE);
+    //lfi_as_mprotect_no_verify(p->p_as, info.base, info.len, LFI_PROT_NONE);
 
     uintptr_t m_addr = mm_mapat_cb(
         &p->p_jit_as->mm, l2p(p->p_jit_as, dst), size, LFI_PROT_READ,
@@ -463,7 +463,26 @@ int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size
     memcpy(procjitcodeaddr(p, dst), src, size);
     //TODO: call verifier on memcpyd range
 
-    lfi_as_mprotect_no_verify(p->p_as, info.base, info.len, LFI_PROT_EXEC | LFI_PROT_READ);
+    ///lfi_as_mprotect_no_verify(p->p_as, info.base, info.len, LFI_PROT_EXEC | LFI_PROT_READ);
+    return 0;
+}
+
+int procdeletejitcode(struct TuxProc* p, lfiptr_t dst, size_t length) {
+    LOCK_WITH_DEFER(&p->lk_jit_as, lk_jit_as);
+    if (p->p_jit_as == NULL) {
+        return -TUX_EINVAL;
+    }
+
+    if (!lfi_as_validptr(p->p_jit_as, dst) || !lfi_as_validptr(p->p_jit_as, dst + length)) {
+        return -TUX_EINVAL;
+    }
+
+    if (l2p(p->p_jit_as, dst) >= p->p_jit_as->minaddr && l2p(p->p_jit_as, dst) + length < p->p_jit_as->maxaddr)
+        return mm_unmap_cb(&p->p_jit_as->mm, l2p(p->p_jit_as, dst), length, NULL, NULL);
+
+    //TODO: clear out jitcode in executable memory
+
+    return -TUX_EINVAL;
 }
 
 EXPORT struct TuxThread*
