@@ -24,22 +24,19 @@ uintptr_t sys_jitcode_mmap(struct TuxProc* p, lfiptr_t addrp, size_t exec_length
 
 //int sys_jitcode_create(struct TuxProc* p, lfiptr_t addrup, size_t length);
 
-int sys_jitcode_create2(struct TuxProc* p, lfiptr_t addrp, lfiptr_t bufp1, size_t length1, lfiptr_t bufp2, size_t length2) {
-  //TODO: overflow check
-  size_t length = length1 + length2;
+int sys_jitcode_create2(struct TuxProc* p, lfiptr_t addrp, lfiptr_t bufp, size_t total_length,
+                        size_t header_length) {
+  uint8_t* src = procbuf(p, bufp, total_length);
 
-  uint8_t* buf1 = procbuf(p, bufp1, length1);
-  uint8_t* buf2 = procbuf(p, bufp2, length2);
-
-  uint8_t* buf = (uint8_t*)malloc(length);
+  uint8_t* buf = (uint8_t*)malloc(total_length);
   if(buf == NULL) {
     return -1;
   }
 
-  memcpy(buf, buf1, length1);
-  memcpy(buf + length1, buf2, length2);
+  memcpy(buf, src + total_length - header_length, header_length);
+  memcpy(buf + header_length, src, total_length - header_length);
 
-  int r = proccreatejitcode(p, addrp, buf, length);
+  int r = proccreatejitcode(p, addrp, buf, total_length);
   free(buf);
   return r;
 }

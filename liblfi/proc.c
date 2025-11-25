@@ -451,19 +451,32 @@ int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size
 
     //TODO: maybe sanity expect the allocation to be currently READ | EXEC
 
-    //lfi_as_mprotect_no_verify(p->p_as, info.base, info.len, LFI_PROT_NONE);
+    MMAddrSpace* mm = &p->p_jit_as->mm;
+    size_t pageshift = mm->p2pagesize;
+
+    uintptr_t base = (dst >> pageshift);
+    uintptr_t len = (((dst + size) >> pageshift) - base + 1) << pageshift;
+    base <<= pageshift;
+
+    lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len, LFI_PROT_NONE);
 
     uintptr_t m_addr = mm_mapat_cb(
-        &p->p_jit_as->mm, l2p(p->p_jit_as, dst), size, LFI_PROT_READ,
+        mm, l2p(p->p_jit_as, dst), size, LFI_PROT_READ,
         LFI_MAP_FIXED | LFI_MAP_PRIVATE, NULL, 0, cbunmap_exec, p);
     if (m_addr == (uintptr_t) -1) {
         return -TUX_EINVAL;
     }
 
-    memcpy(procjitcodeaddr(p, dst), src, size);
-    //TODO: call verifier on memcpyd range
+    uint8_t* jit_addr = procjitcodeaddr(p, dst);
+    memcpy(jit_addr, src, size);
 
-    ///lfi_as_mprotect_no_verify(p->p_as, info.base, info.len, LFI_PROT_EXEC | LFI_PROT_READ);
+    // LFIVerifier* verifier = p->p_as->plat->verifier;
+    // if (!lfiv_verify(verifier, (void*) jit_addr, size, (uintptr_t) jit_addr)) {
+        // return -1;
+    // }
+
+    lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len, LFI_PROT_READ | LFI_PROT_EXEC);
+
     return 0;
 }
 
