@@ -35,7 +35,7 @@ syshandle(struct TuxThread* p, uintptr_t sysno, uintptr_t a0, uintptr_t a1,
     SYS(mprotect,          sys_mprotect(proc, a0, a1, a2))
     SYS(munmap,            sys_munmap(proc, a0, a1))
     SYS(jitcode_mmap,      sys_jitcode_mmap(proc, a0, a1, a2))
-    //SYS(jitcode_create,    sys_jitcode_create(proc, a0, a1, a2))
+    SYS(jitcode_create,    sys_jitcode_create(proc, a0, a1, a2))
     SYS(jitcode_delete,    sys_jitcode_delete(proc, a0, a1))
     SYS(jitcode_munmap,    sys_jitcode_munmap(proc, a0, a1, a2))
     SYS(jitcode_commit,    sys_jitcode_commit(proc, a0, a1))

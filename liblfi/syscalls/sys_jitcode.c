@@ -22,12 +22,31 @@ uintptr_t sys_jitcode_mmap(struct TuxProc* p, lfiptr_t addrp, size_t exec_length
     return ret;
 }
 
-//int sys_jitcode_create(struct TuxProc* p, lfiptr_t addrup, size_t length);
+int sys_jitcode_create(struct TuxProc* p, lfiptr_t addrp, lfiptr_t bufp, size_t length) {
+  // Make sure addresses are bundle aligned
+  int bundle_size = 32;
+  if(addrp % bundle_size != 0) {
+      VERBOSE(p->tux, "sys_jitcode_create: addr not bundle aligned!");
+      return -1;
+  }
+  // TODO: pad length up to bundle size
+  uint8_t* src = procbuf(p, bufp, length);
+  int r = proccreatejitcode(p, addrp, src, length);
+  return r;
+}
 
 int sys_jitcode_create2(struct TuxProc* p, lfiptr_t addrp, lfiptr_t bufp, size_t total_length,
                         size_t header_length) {
+  // TODO: We probably need better sanity checks here
+  assert(total_length >= header_length);
+  // Make sure addresses are bundle aligned
+  int bundle_size = 32;
+  if(addrp % bundle_size != 0) {
+      VERBOSE(p->tux, "sys_jitcode_create: addr not bundle aligned!");
+      return -1;
+  }
+  // TODO: pad length up to bundle size
   uint8_t* src = procbuf(p, bufp, total_length);
-
   uint8_t* buf = (uint8_t*)malloc(total_length);
   if(buf == NULL) {
     return -1;
