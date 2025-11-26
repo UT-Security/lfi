@@ -41,6 +41,7 @@ syshandle(struct TuxThread* p, uintptr_t sysno, uintptr_t a0, uintptr_t a1,
     SYS(jitcode_commit,    sys_jitcode_commit(proc, a0, a1))
     SYS(jitcode_decommit,  sys_jitcode_decommit(proc, a0, a1))
     SYS(jitcode_create2,   sys_jitcode_create2(proc, a0, a1, a2, a3))
+    SYS(jitcode_modify,    sys_jitcode_modify(proc, a0, a1, a2))
     SYS(getdents64,        sys_getdents64(proc, a0, a1, a2))
     SYS(newfstatat,        sys_newfstatat(proc, a0, a1, a2, a3))
     SYS(fstat,             sys_newfstatat(proc, a0, 0, a1, TUX_AT_EMPTY_PATH))

@@ -60,6 +60,16 @@ int sys_jitcode_create2(struct TuxProc* p, lfiptr_t addrp, lfiptr_t bufp, size_t
   return r;
 }
 
+int sys_jitcode_modify(struct TuxProc* p, lfiptr_t addrp, size_t valp, size_t length) {
+    // Make sure you can only modify upto a 5-byte nop/call/jmp
+    if(length > 5) {
+        return -1;
+    }
+    int r = procmodifyjitcode(p, addrp, valp, length);
+    return r;
+}
+
+
 int sys_jitcode_delete(struct TuxProc* p, lfiptr_t addrp, size_t length) {
     if (!procjitvalid(p, addrp))
         return -1;

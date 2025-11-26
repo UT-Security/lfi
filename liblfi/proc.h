@@ -139,6 +139,8 @@ int procunmapjitcode(struct TuxProc* p, lfiptr_t start, size_t exec_size, size_t
 
 int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size);
 
+int procmodifyjitcode(struct TuxProc* p, lfiptr_t dst, size_t value, size_t length);
+
 int procdeletejitcode(struct TuxProc* p, lfiptr_t dst, size_t length);
 
 struct TuxThread* procnewthread(struct TuxThread* p);

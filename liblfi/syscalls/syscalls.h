@@ -119,6 +119,8 @@ int sys_jitcode_create2(struct TuxProc* p, lfiptr_t addrp, lfiptr_t bufp, size_t
 
 int sys_jitcode_delete(struct TuxProc* p, lfiptr_t addrup, size_t length);
 
+int sys_jitcode_modify(struct TuxProc* p, lfiptr_t addrp, size_t valp, size_t length);
+
 int sys_jitcode_munmap(struct TuxProc* p, lfiptr_t addrup, size_t exec_length, size_t data_length);
 
 int sys_jitcode_commit(struct TuxProc* p, lfiptr_t addrup, size_t length);

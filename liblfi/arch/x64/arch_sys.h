@@ -98,9 +98,10 @@ enum {
     TUX_SYS_jitcode_commit     = 445,
     TUX_SYS_jitcode_decommit   = 446,
     TUX_SYS_jitcode_create2    = 447,
+    TUX_SYS_jitcode_modify    = 448,
     
     // always last syscall+1
-    TUX_SYS_ntotal             = 448,
+    TUX_SYS_ntotal             = 449,
 };
 
 void arch_syshandle(struct LFIContext* ctx);
