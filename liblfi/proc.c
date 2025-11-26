@@ -486,7 +486,7 @@ int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size
     return 0;
 }
 
-int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t length) {
+int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patch_len) {
     LOCK_WITH_DEFER(&p->lk_jit_as, lk_jit_as);
     if (p->p_jit_as == NULL) {
         return -TUX_EINVAL;
@@ -494,10 +494,13 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t leng
 
     // Align to bundle size
     size_t bundle_mask = 0xffffffffffffffe0;
-    size_t offset = src & ~bundle_mask;
+    size_t patch_offset = src & ~bundle_mask;
     size_t dst = src & bundle_mask;
-    // Theres probably an easier way to do this - check if sequence spans 2 bundles
-    size_t size = dst == ((dst + offset + length) & bundle_mask) ? 32 : 64;
+    // Sequence should never be allowed to span 2 bundles
+    if (dst != ((dst + patch_offset + patch_len - 1) & bundle_mask)) {
+        return -TUX_EINVAL;
+    }
+    size_t size = 32;
 
     if (!lfi_as_validptr(p->p_jit_as, dst) || !lfi_as_validptr(p->p_jit_as, dst + size)) {
         return -TUX_EINVAL;
@@ -517,14 +520,6 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t leng
     uintptr_t len = (((dst + size) >> pageshift) - base + 1) << pageshift;
     base <<= pageshift;
 
-    // TODO: is this necessary for patching?
-    uintptr_t m_addr = mm_mapat_cb(
-        mm, l2p(p->p_jit_as, dst), size, LFI_PROT_READ,
-        LFI_MAP_FIXED | LFI_MAP_PRIVATE, NULL, 0, cbunmap_exec, p);
-    if (m_addr == (uintptr_t) -1) {
-        return -TUX_EINVAL;
-    }
-
     LFIVerifier* verifier = p->p_as->plat->verifier;
 
     if(verifier) {
@@ -532,9 +527,7 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t leng
     }
 
     uint8_t* jit_addr = procjitcodeaddr(p, dst);
-    for(int i = 0; i < length; i++) {
-        memset(jit_addr + offset + i, (value >> i*8) & 0xff, 1);
-    }
+    memcpy(jit_addr + patch_offset, &value, patch_len);
 
     if(verifier) {
         if (!lfiv_verify(verifier, (void*) jit_addr, size, (uintptr_t) jit_addr)) {
