@@ -371,6 +371,11 @@ static bool chkbranch(struct Verifier *v, FdInstr *instr, uint8_t* buf, size_t s
     bool indirect, cond;
     bool branch = branchinfo(v, instr, &target, &indirect, &cond);
     if (branch && !indirect) {
+        /*
+        if(target < v->base || target > (v->addr + size)) {
+            verr(v, instr, "Branch target outside of valid space");
+        }
+        */
         if (target % v->bundlesize != 0) {
              chkunaligned(v, target, buf, size);
             //verrmin(v, "%lx : unaligned branch", v->addr);
@@ -410,10 +415,15 @@ static void vchkins(struct Verifier *v, uint8_t *buf, size_t size, FdInstrBundle
 }
 
 static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
+    size_t bundlesize = v->bundlesize;
+    if(v->addr % bundlesize != 0) {
+        verrmin(v, "%lx: chkbundle not starting at bundle-aligned boundary", v->addr);
+    }
     size_t count = 0;
     size_t ninstr = 0;
     struct MacroInst mi;
     bool cf_break = false;
+    uint64_t end = v->addr + bundlesize;
 
     FdInstrBundle bundle = {};
 
@@ -452,8 +462,7 @@ static size_t vchkbundle(struct Verifier *v, uint8_t* buf, size_t size) {
         i += mi.ninstr;
     }
     if(cf_break) {
-        uint32_t bundlesize = v->bundlesize;
-        v->addr += bundlesize - (v->addr % bundlesize);
+        v->addr = end;
         //don't have to inc bundlesize, that's functionally baked in already
     }
     return ninstr;
