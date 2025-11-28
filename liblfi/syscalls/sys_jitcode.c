@@ -29,9 +29,15 @@ int sys_jitcode_create(struct TuxProc* p, lfiptr_t addrp, lfiptr_t bufp, size_t 
       VERBOSE(p->tux, "sys_jitcode_create: addr not bundle aligned!");
       return -1;
   }
-  // TODO: pad length up to bundle size
+  int to_align = length % bundle_size;
+  size_t aligned_length = to_align ? length + bundle_size - to_align : length;
   uint8_t* src = procbuf(p, bufp, length);
-  int r = proccreatejitcode(p, addrp, src, length);
+  uint8_t* buf = (uint8_t*)malloc(aligned_length);
+  memcpy(buf, src, length);
+  // Pad to bundle alignment
+  memset(buf + length, 0xcc, aligned_length - length);
+  int r = proccreatejitcode(p, addrp, buf, aligned_length);
+  free(buf);
   return r;
 }
 
@@ -42,30 +48,33 @@ int sys_jitcode_create2(struct TuxProc* p, lfiptr_t addrp, lfiptr_t bufp, size_t
   // Make sure addresses are bundle aligned
   int bundle_size = 32;
   if(addrp % bundle_size != 0) {
-      VERBOSE(p->tux, "sys_jitcode_create: addr not bundle aligned!");
+      VERBOSE(p->tux, "sys_jitcode_create: base addr not bundle aligned!");
       return -1;
   }
-  // TODO: pad length up to bundle size
+  int to_align = total_length % bundle_size;
+  size_t aligned_length = to_align ? total_length + bundle_size - to_align : total_length;
   uint8_t* src = procbuf(p, bufp, total_length);
-  uint8_t* buf = (uint8_t*)malloc(total_length);
+  uint8_t* buf = (uint8_t*)malloc(aligned_length);
   if(buf == NULL) {
     return -1;
   }
 
   memcpy(buf, src + total_length - header_length, header_length);
   memcpy(buf + header_length, src, total_length - header_length);
+  // Pad to bundle alignment
+  memset(buf + total_length, 0xcc, aligned_length - total_length);
 
-  int r = proccreatejitcode(p, addrp, buf, total_length);
+  int r = proccreatejitcode(p, addrp, buf, aligned_length);
   free(buf);
   return r;
 }
 
-int sys_jitcode_modify(struct TuxProc* p, lfiptr_t addrp, size_t valp, size_t length) {
+int sys_jitcode_modify(struct TuxProc* p, lfiptr_t addrp, size_t valp, size_t length, int halt_pad) {
     // Make sure you can only modify upto a 5-byte nop/call/jmp
     if(length > 5) {
         return -1;
     }
-    int r = procmodifyjitcode(p, addrp, valp, length);
+    int r = procmodifyjitcode(p, addrp, valp, length, halt_pad);
     return r;
 }
 

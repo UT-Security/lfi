@@ -486,7 +486,7 @@ int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size
     return 0;
 }
 
-int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patch_len) {
+int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patch_len, int halt_pad) {
     LOCK_WITH_DEFER(&p->lk_jit_as, lk_jit_as);
     if (p->p_jit_as == NULL) {
         return -TUX_EINVAL;
@@ -527,6 +527,9 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patc
     }
 
     uint8_t* jit_addr = procjitcodeaddr(p, dst);
+    if(halt_pad) {
+        memset(jit_addr, 0xf4, patch_offset);
+    }
     memcpy(jit_addr + patch_offset, &value, patch_len);
 
     if(verifier) {
