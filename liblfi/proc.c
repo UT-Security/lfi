@@ -6,6 +6,7 @@
 #include <syscall.h>
 #include <sys/mman.h>
 
+#include "align.h"
 #include "arch_regs.h"
 #include "cwalk.h"
 #include "lfi.h"
@@ -286,7 +287,7 @@ procmapat(struct TuxProc* p, lfiptr_t start, size_t size, int prot, int flags,
         }
     }
     LOCK_WITH_DEFER(&p->lk_as, lk_as);
-    if (procjitvalid(p, start))
+    if (procjitvalid(p, start) || procjitvalid(p, start + size - 1))
         return -TUX_EINVAL;
     lfiptr_t addr = lfi_as_mapat(p->p_as, start, size, prot, flags, hf, offset);
     if (addr == (lfiptr_t) -1)
@@ -298,7 +299,7 @@ int
 procunmap(struct TuxProc* p, lfiptr_t start, size_t size)
 {
     LOCK_WITH_DEFER(&p->lk_as, lk_as);
-    if (procjitvalid(p, start))
+    if (procjitvalid(p, start) || procjitvalid(p, start + size - 1))
         return -TUX_EINVAL;
     return lfi_as_munmap(p->p_as, start, size);
 }
@@ -439,7 +440,7 @@ int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size
         return -TUX_EINVAL;
     }
 
-    if (!lfi_as_validptr(p->p_jit_as, dst) || !lfi_as_validptr(p->p_jit_as, dst + size)) {
+    if (!lfi_as_validptr(p->p_jit_as, dst) || !lfi_as_validptr(p->p_jit_as, dst + size - 1)) {
         return -TUX_EINVAL;
     }
 
@@ -451,14 +452,11 @@ int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size
 
     //TODO: maybe sanity expect the allocation to be currently READ | EXEC
 
-    MMAddrSpace* mm = &p->p_jit_as->mm;
-    size_t pageshift = mm->p2pagesize;
-    uintptr_t base = (dst >> pageshift);
-    uintptr_t len = (((dst + size) >> pageshift) - base + 1) << pageshift;
-    base <<= pageshift;
+    uintptr_t base = truncp(dst, p->tux->opts.pagesize);
+    uintptr_t len = ceilp(size, p->tux->opts.pagesize);
 
     uintptr_t m_addr = mm_mapat_cb(
-        mm, l2p(p->p_jit_as, dst), size, LFI_PROT_READ,
+        &p->p_jit_as->mm, l2p(p->p_jit_as, dst), size, LFI_PROT_READ,
         LFI_MAP_FIXED | LFI_MAP_PRIVATE, NULL, 0, cbunmap_exec, p);
     if (m_addr == (uintptr_t) -1) {
         return -TUX_EINVAL;
@@ -466,8 +464,8 @@ int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size
 
     LFIVerifier* verifier = p->p_as->plat->verifier;
 
-    if(verifier) {
-        lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len, LFI_PROT_NONE);
+    if(verifier && lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len, LFI_PROT_NONE) == -1) {
+        return -1;
     }
 
     uint8_t* jit_addr = procjitcodeaddr(p, dst);
@@ -480,7 +478,9 @@ int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size
             return -1;
         }
 
-        lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len, LFI_PROT_READ | LFI_PROT_EXEC);
+        if (lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len, LFI_PROT_READ | LFI_PROT_EXEC) == -1) {
+            return -1;
+        }
     }
 
     return 0;
@@ -502,28 +502,25 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patc
     }
     size_t size = 32;
 
-    if (!lfi_as_validptr(p->p_jit_as, dst) || !lfi_as_validptr(p->p_jit_as, dst + size)) {
+    if (!lfi_as_validptr(p->p_jit_as, dst) || !lfi_as_validptr(p->p_jit_as, dst + size - 1)) {
         return -TUX_EINVAL;
     }
-
-    LOCK_WITH_DEFER(&p->lk_as, lk_as);
     //MMInfo info;
-    //if(!mm_querypage(&p->p_as->mm, dst, &info)) {
+    //if(!mm_querypage(&p->p_jit_as->mm, dst, &info)) {
     //    return -TUX_EINVAL;
     //}
 
+    LOCK_WITH_DEFER(&p->lk_as, lk_as);
+
     //TODO: maybe sanity expect the allocation to be currently READ | EXEC
 
-    MMAddrSpace* mm = &p->p_jit_as->mm;
-    size_t pageshift = mm->p2pagesize;
-    uintptr_t base = (dst >> pageshift);
-    uintptr_t len = (((dst + size) >> pageshift) - base + 1) << pageshift;
-    base <<= pageshift;
+    uintptr_t base = truncp(dst, p->tux->opts.pagesize);
+    uintptr_t len = ceilp(size, p->tux->opts.pagesize);
 
     LFIVerifier* verifier = p->p_as->plat->verifier;
 
-    if(verifier) {
-        lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len, LFI_PROT_NONE);
+    if(verifier && lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len, LFI_PROT_NONE) == -1) {
+        return -1;
     }
 
     uint8_t* jit_addr = procjitcodeaddr(p, dst);
@@ -539,7 +536,9 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patc
             return -1;
         }
 
-        lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len, LFI_PROT_READ | LFI_PROT_EXEC);
+        if(lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len, LFI_PROT_READ | LFI_PROT_EXEC) == -1) {
+            return -1;
+        }
     }
 
     return 0;
@@ -551,14 +550,33 @@ int procdeletejitcode(struct TuxProc* p, lfiptr_t dst, size_t length) {
         return -TUX_EINVAL;
     }
 
-    if (!lfi_as_validptr(p->p_jit_as, dst) || !lfi_as_validptr(p->p_jit_as, dst + length)) {
+    if (!lfi_as_validptr(p->p_jit_as, dst) || !lfi_as_validptr(p->p_jit_as, dst + length - 1)) {
         return -TUX_EINVAL;
     }
 
-    if (l2p(p->p_jit_as, dst) >= p->p_jit_as->minaddr && l2p(p->p_jit_as, dst) + length < p->p_jit_as->maxaddr)
-        return mm_unmap_cb(&p->p_jit_as->mm, l2p(p->p_jit_as, dst), length, NULL, NULL);
+    LOCK_WITH_DEFER(&p->lk_as, lk_as);
 
-    //TODO: clear out jitcode in executable memory
+    LFIVerifier* verifier = p->p_as->plat->verifier;
+
+    uintptr_t base = truncp(dst, p->tux->opts.pagesize);
+    uintptr_t len = ceilp(length, p->tux->opts.pagesize);
+
+    if (verifier && lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len,
+                                              LFI_PROT_NONE) == -1) {
+      return -1;
+    }
+
+    memset(procjitcodeaddr(p, dst), 0xcc, length);
+
+    if (verifier && lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len,
+                                LFI_PROT_READ | LFI_PROT_EXEC) == -1) {
+        return -1;
+    }
+
+    if (l2p(p->p_jit_as, dst) >= p->p_jit_as->minaddr &&
+        l2p(p->p_jit_as, dst) + length < p->p_jit_as->maxaddr)
+      return mm_unmap_cb(&p->p_jit_as->mm, l2p(p->p_jit_as, dst), length, NULL,
+                         NULL);
 
     return -TUX_EINVAL;
 }

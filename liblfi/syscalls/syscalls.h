@@ -115,7 +115,7 @@ uintptr_t sys_jitcode_mmap(struct TuxProc* p, lfiptr_t addrup, size_t exec_lengt
 
 int sys_jitcode_create(struct TuxProc* p, lfiptr_t addrup, lfiptr_t bufp, size_t length);
 
-int sys_jitcode_create2(struct TuxProc* p, lfiptr_t addrp, lfiptr_t bufp, size_t total_length, size_t header_length);
+int sys_jitcode_create2(struct TuxProc* p, lfiptr_t addrp, lfiptr_t headerp, size_t header_length, lfiptr_t bufp, size_t total_length);
 
 int sys_jitcode_delete(struct TuxProc* p, lfiptr_t addrup, size_t length);
 

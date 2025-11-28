@@ -25,46 +25,62 @@ uintptr_t sys_jitcode_mmap(struct TuxProc* p, lfiptr_t addrp, size_t exec_length
 int sys_jitcode_create(struct TuxProc* p, lfiptr_t addrp, lfiptr_t bufp, size_t length) {
   // Make sure addresses are bundle aligned
   int bundle_size = 32;
-  if(addrp % bundle_size != 0) {
+  
+  if (addrp % bundle_size != 0) {
       VERBOSE(p->tux, "sys_jitcode_create: addr not bundle aligned!");
       return -1;
   }
-  int to_align = length % bundle_size;
-  size_t aligned_length = to_align ? length + bundle_size - to_align : length;
+
+  if (length % bundle_size != 0) {
+      VERBOSE(p->tux, "sys_jitcode_create: length not bundle aligned!");
+      return -1;
+  }
+  
   uint8_t* src = procbuf(p, bufp, length);
-  uint8_t* buf = (uint8_t*)malloc(aligned_length);
+  uint8_t* buf = (uint8_t*)malloc(length);
   memcpy(buf, src, length);
-  // Pad to bundle alignment
-  memset(buf + length, 0xcc, aligned_length - length);
-  int r = proccreatejitcode(p, addrp, buf, aligned_length);
+  int r = proccreatejitcode(p, addrp, buf, length);
   free(buf);
   return r;
 }
 
-int sys_jitcode_create2(struct TuxProc* p, lfiptr_t addrp, lfiptr_t bufp, size_t total_length,
-                        size_t header_length) {
+int sys_jitcode_create2(struct TuxProc *p, lfiptr_t addrp, lfiptr_t headerp,
+                        size_t header_length, lfiptr_t bufp,
+                        size_t total_length) {
   // TODO: We probably need better sanity checks here
   assert(total_length >= header_length);
   // Make sure addresses are bundle aligned
   int bundle_size = 32;
+
   if(addrp % bundle_size != 0) {
       VERBOSE(p->tux, "sys_jitcode_create: base addr not bundle aligned!");
       return -1;
   }
-  int to_align = total_length % bundle_size;
-  size_t aligned_length = to_align ? total_length + bundle_size - to_align : total_length;
-  uint8_t* src = procbuf(p, bufp, total_length);
-  uint8_t* buf = (uint8_t*)malloc(aligned_length);
+  
+  if (total_length % bundle_size != 0) {
+      VERBOSE(p->tux, "sys_jitcode_create: total_length not bundle aligned!");
+      return -1;
+  }
+  
+  if (header_length % bundle_size != 0) {
+      VERBOSE(p->tux, "sys_jitcode_create: header_length not bundle aligned!");
+      return -1;
+  }
+
+  uint8_t* header = procbuf(p, headerp, header_length);
+
+  size_t src_length = total_length - header_length;
+  uint8_t* src = procbuf(p, bufp, src_length);
+
+  uint8_t* buf = (uint8_t*)malloc(total_length);
   if(buf == NULL) {
     return -1;
   }
 
-  memcpy(buf, src + total_length - header_length, header_length);
-  memcpy(buf + header_length, src, total_length - header_length);
-  // Pad to bundle alignment
-  memset(buf + total_length, 0xcc, aligned_length - total_length);
+  memcpy(buf, header, header_length);
+  memcpy(buf + header_length, src, src_length);
 
-  int r = proccreatejitcode(p, addrp, buf, aligned_length);
+  int r = proccreatejitcode(p, addrp, buf, total_length);
   free(buf);
   return r;
 }
@@ -103,7 +119,7 @@ int sys_jitcode_commit(struct TuxProc* p, lfiptr_t addrp, size_t length) {
     if (!procjitvalid(p, addrp))
         return -1;
     LOCK_WITH_DEFER(&p->lk_as, lk_as);
-    //TODO: clear out page to be safe
+    memset(procjitcodeaddr(p, addrp), 0xcc, length);
     return lfi_as_mprotect_no_verify(p->p_jit_as, addrp, length, LFI_PROT_READ | LFI_PROT_EXEC);
 }
 
