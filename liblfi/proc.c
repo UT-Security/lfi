@@ -314,7 +314,7 @@ procfree(struct TuxThread* p)
 }
 
 int procmapjitcode(struct TuxProc* p, size_t exec_size, size_t data_size, lfiptr_t* o_mapstart) {
-    LOCK_WITH_DEFER(&p->lk_jit_as, lk_jit_as);
+    LOCK_WITH_DEFER(&p->lk_as, lk_as);
     if (p->p_jit_as != NULL) {
         return -TUX_EINVAL;
     }
@@ -345,7 +345,6 @@ int procmapjitcode(struct TuxProc* p, size_t exec_size, size_t data_size, lfiptr
         return -TUX_EINVAL;
     }
 
-    LOCK_WITH_DEFER(&p->lk_as, lk_as);
     lfiptr_t addr = lfi_as_mapany(p->p_as, size, PROT_NONE, MAP_SHARED, hf, 0);
     if (addr == (lfiptr_t) -1) {
         close(fd);
@@ -368,15 +367,6 @@ int procmapjitcode(struct TuxProc* p, size_t exec_size, size_t data_size, lfiptr
         .plat = p->p_as->plat,
     };
 
-    bool ok = mm_init(&jit_as->mm, jit_as->minaddr,
-                      jit_as->maxaddr - jit_as->minaddr, 32);
-    if (!ok) {
-        free(jit_as);
-        close(fd);
-        munmap(aliasmap, size);
-        return -TUX_EINVAL; 
-    }
-
     p->p_jit_as = jit_as;
     p->p_jit_info = lfi_as_info(jit_as);
     p->jit_fd = fd;
@@ -389,7 +379,7 @@ int procmapjitcode(struct TuxProc* p, size_t exec_size, size_t data_size, lfiptr
 int
 procunmapjitcode(struct TuxProc* p, lfiptr_t start, size_t exec_size, size_t data_size)
 {
-    LOCK_WITH_DEFER(&p->lk_jit_as, lk_jit_as);
+    LOCK_WITH_DEFER(&p->lk_as, lk_as);
     if (p->p_jit_as == NULL) {
         return -TUX_EINVAL;
     }
@@ -401,8 +391,6 @@ procunmapjitcode(struct TuxProc* p, lfiptr_t start, size_t exec_size, size_t dat
         return -TUX_EINVAL;
     }
 
-    //TODO: maybe check that there are not live jit allocations.
-
     struct LFIAddrSpace* jit_as = p->p_jit_as;
     int jit_fd = p->jit_fd;
     uint8_t* jit_alias = p->jit_alias;
@@ -413,7 +401,6 @@ procunmapjitcode(struct TuxProc* p, lfiptr_t start, size_t exec_size, size_t dat
 
     free(jit_as);
 
-    LOCK_WITH_DEFER(&p->lk_as, lk_as);
     if(lfi_as_munmap(p->p_as, start, size) == -1) {
         return -TUX_EINVAL;
     }
@@ -426,16 +413,8 @@ procunmapjitcode(struct TuxProc* p, lfiptr_t start, size_t exec_size, size_t dat
     return 0;
 }
 
-static void
-cbunmap_exec(uint64_t start, size_t len, MMInfo info, void* udata)
-{
-    (void) info;
-    struct TuxProc* p = (struct TuxProc*)udata;
-    memset(procjitcodeaddr(p, start), 0xcc, len);
-}
-
 int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size) {
-    LOCK_WITH_DEFER(&p->lk_jit_as, lk_jit_as);
+    LOCK_WITH_DEFER(&p->lk_as, lk_as);
     if (p->p_jit_as == NULL) {
         return -TUX_EINVAL;
     }
@@ -444,23 +423,8 @@ int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size
         return -TUX_EINVAL;
     }
 
-    LOCK_WITH_DEFER(&p->lk_as, lk_as);
-    //MMInfo info;
-    //if(!mm_querypage(&p->p_as->mm, dst, &info)) {
-    //    return -TUX_EINVAL;
-    //}
-
-    //TODO: maybe sanity expect the allocation to be currently READ | EXEC
-
     uintptr_t base = truncp(dst, p->tux->opts.pagesize);
     uintptr_t len = ceilp(size, p->tux->opts.pagesize);
-
-    uintptr_t m_addr = mm_mapat_cb(
-        &p->p_jit_as->mm, l2p(p->p_jit_as, dst), size, LFI_PROT_READ,
-        LFI_MAP_FIXED | LFI_MAP_PRIVATE, NULL, 0, cbunmap_exec, p);
-    if (m_addr == (uintptr_t) -1) {
-        return -TUX_EINVAL;
-    }
 
     LFIVerifier* verifier = p->p_as->plat->verifier;
 
@@ -473,7 +437,6 @@ int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size
 
     if(verifier) {
         if (!lfiv_verify(verifier, (void*) jit_addr, size, (uintptr_t) jit_addr)) {
-            // TODO: we should probably invalidate the entire page?
             lfi_as_munmap(p->p_as, l2p(p->p_as, base), len);
             return -1;
         }
@@ -487,7 +450,7 @@ int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size
 }
 
 int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patch_len, int halt_pad) {
-    LOCK_WITH_DEFER(&p->lk_jit_as, lk_jit_as);
+    LOCK_WITH_DEFER(&p->lk_as, lk_as);
     if (p->p_jit_as == NULL) {
         return -TUX_EINVAL;
     }
@@ -505,14 +468,6 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patc
     if (!lfi_as_validptr(p->p_jit_as, dst) || !lfi_as_validptr(p->p_jit_as, dst + size - 1)) {
         return -TUX_EINVAL;
     }
-    //MMInfo info;
-    //if(!mm_querypage(&p->p_jit_as->mm, dst, &info)) {
-    //    return -TUX_EINVAL;
-    //}
-
-    LOCK_WITH_DEFER(&p->lk_as, lk_as);
-
-    //TODO: maybe sanity expect the allocation to be currently READ | EXEC
 
     uintptr_t base = truncp(dst, p->tux->opts.pagesize);
     uintptr_t len = ceilp(size, p->tux->opts.pagesize);
@@ -531,7 +486,6 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patc
 
     if(verifier) {
         if (!lfiv_verify(verifier, (void*) jit_addr, size, (uintptr_t) jit_addr)) {
-            // TODO: we should probably invalidate the entire page?
             lfi_as_munmap(p->p_as, l2p(p->p_as, base), len);
             return -1;
         }
@@ -545,7 +499,7 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patc
 }
 
 int procdeletejitcode(struct TuxProc* p, lfiptr_t dst, size_t length) {
-    LOCK_WITH_DEFER(&p->lk_jit_as, lk_jit_as);
+    LOCK_WITH_DEFER(&p->lk_as, lk_as);
     if (p->p_jit_as == NULL) {
         return -TUX_EINVAL;
     }
@@ -553,8 +507,6 @@ int procdeletejitcode(struct TuxProc* p, lfiptr_t dst, size_t length) {
     if (!lfi_as_validptr(p->p_jit_as, dst) || !lfi_as_validptr(p->p_jit_as, dst + length - 1)) {
         return -TUX_EINVAL;
     }
-
-    LOCK_WITH_DEFER(&p->lk_as, lk_as);
 
     LFIVerifier* verifier = p->p_as->plat->verifier;
 
@@ -573,12 +525,7 @@ int procdeletejitcode(struct TuxProc* p, lfiptr_t dst, size_t length) {
         return -1;
     }
 
-    if (l2p(p->p_jit_as, dst) >= p->p_jit_as->minaddr &&
-        l2p(p->p_jit_as, dst) + length < p->p_jit_as->maxaddr)
-      return mm_unmap_cb(&p->p_jit_as->mm, l2p(p->p_jit_as, dst), length, NULL,
-                         NULL);
-
-    return -TUX_EINVAL;
+    return 0;
 }
 
 EXPORT struct TuxThread*

@@ -99,7 +99,6 @@ struct TuxProc {
     int jit_fd;
     uint8_t* jit_alias;
     pthread_mutex_t lk_as;
-    pthread_mutex_t lk_jit_as;
     pthread_mutex_t lk_brk;
 
     struct SigActionEntry signals[LINUX_NSIG];
