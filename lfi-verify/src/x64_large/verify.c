@@ -372,11 +372,14 @@ static bool chkbranch(struct Verifier *v, FdInstr *instr, uint8_t* buf, size_t s
     bool branch = branchinfo(v, instr, &target, &indirect, &cond);
     if (branch && !indirect) {
         if (target % v->bundlesize != 0) {
-            if(target < v->base || target > (v->addr + size)) {
+            if (v->opts->unaligned_direct) {
+              if (target < v->base || target > (v->addr + size)) {
                 verr(v, instr, "Branch target outside of valid space");
+              }
+              chkunaligned(v, target, buf, size);
+            } else {
+              verrmin(v, "%lx : unaligned branch", v->addr);
             }
-            chkunaligned(v, target, buf, size);
-            // verrmin(v, "%lx : unaligned branch", v->addr);
         }
     } else if (branch && indirect) {
         verr(v, instr, "invalid indirect branch");

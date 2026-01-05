@@ -16,6 +16,9 @@ struct LFIVOptions {
     // Guard size (only used for variable-length sandbox)
     int64_t guardsize;
 
+    // Allow unaligned direct branches.
+    bool unaligned_direct;
+
     // Callback to print a null-terminated error message if verification fails.
     void (*err)(char *msg, size_t size);
 };
@@ -51,5 +54,15 @@ lfiv_verify(struct LFIVerifier *v, char *code, size_t size, uintptr_t addr)
 {
     if (!v->verify)
         return false;
+    v->opts.unaligned_direct = true;
+    return v->verify(code, size, addr, &v->opts);
+}
+
+static inline bool
+lfiv_verify_aligned(struct LFIVerifier *v, char *code, size_t size, uintptr_t addr)
+{
+    if (!v->verify)
+        return false;
+    v->opts.unaligned_direct = false;
     return v->verify(code, size, addr, &v->opts);
 }

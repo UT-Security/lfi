@@ -436,7 +436,7 @@ int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size
     memcpy(jit_addr, src, size);
 
     if(verifier) {
-        if (!lfiv_verify(verifier, (void*) jit_addr, size, (uintptr_t) jit_addr)) {
+        if (!lfiv_verify_aligned(verifier, (void*) jit_addr, size, (uintptr_t) jit_addr)) {
             lfi_as_munmap(p->p_as, l2p(p->p_as, base), len);
             return -1;
         }
@@ -485,7 +485,7 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patc
     memcpy(jit_addr + patch_offset, &value, patch_len);
 
     if(verifier) {
-        if (!lfiv_verify(verifier, (void*) jit_addr, size, (uintptr_t) jit_addr)) {
+        if (!lfiv_verify_aligned(verifier, (void*) jit_addr, size, (uintptr_t) jit_addr)) {
             lfi_as_munmap(p->p_as, l2p(p->p_as, base), len);
             return -1;
         }
@@ -506,23 +506,6 @@ int procdeletejitcode(struct TuxProc* p, lfiptr_t dst, size_t length) {
 
     if (!lfi_as_validptr(p->p_jit_as, dst) || !lfi_as_validptr(p->p_jit_as, dst + length - 1)) {
         return -TUX_EINVAL;
-    }
-
-    LFIVerifier* verifier = p->p_as->plat->verifier;
-
-    uintptr_t base = truncp(dst, p->tux->opts.pagesize);
-    uintptr_t len = ceilp(length, p->tux->opts.pagesize);
-
-    if (verifier && lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len,
-                                              LFI_PROT_NONE) == -1) {
-      return -1;
-    }
-
-    memset(procjitcodeaddr(p, dst), 0xcc, length);
-
-    if (verifier && lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len,
-                                LFI_PROT_READ | LFI_PROT_EXEC) == -1) {
-        return -1;
     }
 
     return 0;

@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <errno.h>
 
@@ -89,9 +90,9 @@ protectverify(uintptr_t base, size_t size, int prot, LFIVerifier* verifier)
 
 static int
 mapverify(struct LFIAddrSpace* as, uintptr_t start, size_t size, int prot,
-        int flags, struct HostFile* hf, off_t off)
+        int flags, struct HostFile* hf, off_t off, bool verify)
 {
-    if (!as->plat->verifier || ((prot & LFI_PROT_EXEC) == 0))
+    if (!verify || !as->plat->verifier || ((prot & LFI_PROT_EXEC) == 0))
         return mapmem(as, start, size, prot, flags, hf, off);
     else if ((prot & LFI_PROT_WRITE) != 0)
         return -1;
@@ -113,7 +114,22 @@ lfi_as_mapany(struct LFIAddrSpace* as, size_t size, int prot, int flags,
     uintptr_t addr = mm_mapany(&as->mm, size, prot, flags, hf, off);
     if (addr == (lfiptr_t) -1)
         return (lfiptr_t) -1;
-    int r = mapverify(as, addr, size, prot, flags, hf, off);
+    int r = mapverify(as, addr, size, prot, flags, hf, off, true);
+    if (r < 0) {
+        mm_unmap(&as->mm, addr, size);
+        return (lfiptr_t) -1;
+    }
+    return p2l(as, addr);
+}
+
+EXPORT lfiptr_t
+lfi_as_mapany_no_verify(struct LFIAddrSpace* as, size_t size, int prot, int flags,
+        struct HostFile* hf, off_t off)
+{
+    uintptr_t addr = mm_mapany(&as->mm, size, prot, flags, hf, off);
+    if (addr == (lfiptr_t) -1)
+        return (lfiptr_t) -1;
+    int r = mapverify(as, addr, size, prot, flags, hf, off, false);
     if (r < 0) {
         mm_unmap(&as->mm, addr, size);
         return (lfiptr_t) -1;
@@ -139,7 +155,7 @@ lfi_as_mapat(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot,
     uintptr_t m_addr = mm_mapat_cb(&as->mm, l2p(as, addr), size, prot, flags, hf, off, cbunmap, NULL);
     if (m_addr == (uintptr_t) -1)
         return (lfiptr_t) -1; 
-    int r = mapverify(as, m_addr, size, prot, flags, hf, off);
+    int r = mapverify(as, m_addr, size, prot, flags, hf, off, true);
     if (r < 0) {
         mm_unmap(&as->mm, m_addr, size);
         return (lfiptr_t) -1;
@@ -154,6 +170,12 @@ lfi_as_mprotect(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot)
 
     // TODO: mark the mapping with libmmap?
     assert(as->plat);
+
+    if ((prot & LFI_PROT_EXEC) != 0) {
+      size_t pagesize = as->plat->opts.pagesize;
+      if (size % pagesize != 0) memset((char *)(addr + size), 0xcc, pagesize - (size % pagesize));
+    }
+
     return protectverify(l2p(as, addr), size, prot, as->plat->verifier);
 }
 

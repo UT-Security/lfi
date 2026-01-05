@@ -75,6 +75,7 @@ struct LFIAddrSpaceInfo lfi_as_info(struct LFIAddrSpace* as);
 
 lfiptr_t                lfi_as_mapat(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot, int flags, struct HostFile* f, off_t off);
 lfiptr_t                lfi_as_mapany(struct LFIAddrSpace* as, size_t size, int prot, int flags, struct HostFile* f, off_t off);
+lfiptr_t                lfi_as_mapany_no_verify(struct LFIAddrSpace* as, size_t size, int prot, int flags, struct HostFile* f, off_t off);
 int                     lfi_as_munmap(struct LFIAddrSpace* as, lfiptr_t addr, size_t size);
 int                     lfi_as_mprotect(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot);
 int                     lfi_as_mprotect_no_verify(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot);
