@@ -48,6 +48,8 @@ struct LFIContext {
     struct Sys* sys;
     struct LFIAddrSpace* as;
 
+    uint64_t ctxreg[8];
+
     uintptr_t elfbase;
     struct ElfTable symtab;
     struct ElfTable strtab;

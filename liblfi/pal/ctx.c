@@ -148,6 +148,7 @@ EXPORT void
 lfi_ctx_tpset(struct LFIContext* ctx, lfiptr_t tp)
 {
     ctx->tp = tp;
+    ctx->ctxreg[4] = tp;
 }
 
 EXPORT struct LFIAddrSpace*
@@ -194,6 +195,6 @@ lfi_get_myctx(void)
 EXPORT void
 lfi_set_myctx(struct LFIContext* new_ctx) {
     if (new_ctx)
-        __asm__ __volatile__("wrgsbase %0" : : "r"(new_ctx->tp));
+        __asm__ __volatile__("wrgsbase %0" : : "r"(&new_ctx->ctxreg));
     lfi_myctx = new_ctx;
 }
