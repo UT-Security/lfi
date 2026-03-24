@@ -5,7 +5,8 @@
 enum cfi {
     CFI_BUNDLE32 = 0,
     CFI_BUNDLE16 = 1,
-    CFI_HW       = 2,
+    CFI_SW_SHSTK = 2,
+    CFI_HW       = 3,
 };
 
 enum boxtype {

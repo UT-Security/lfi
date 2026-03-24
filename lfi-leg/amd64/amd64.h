@@ -106,6 +106,7 @@ bundle_align_mode()
         return ".bundle_align_mode 4\n";
     case CFI_BUNDLE32:
         return ".bundle_align_mode 5\n";
+    case CFI_SW_SHSTK:
     case CFI_HW:
         return "";
     }
@@ -119,6 +120,7 @@ bundle_lock()
     case CFI_BUNDLE16:
     case CFI_BUNDLE32:
         return ".bundle_lock";
+    case CFI_SW_SHSTK:
     case CFI_HW:
         return "";
     }
@@ -132,6 +134,7 @@ bundle_unlock()
     case CFI_BUNDLE16:
     case CFI_BUNDLE32:
         return ".bundle_unlock";
+    case CFI_SW_SHSTK:
     case CFI_HW:
         return "";
     }
@@ -146,6 +149,7 @@ bundle_align()
         return ".p2align 4";
     case CFI_BUNDLE32:
         return ".p2align 5";
+    case CFI_SW_SHSTK:
     case CFI_HW:
         return ".p2align 0";
     }
@@ -160,6 +164,7 @@ bundle_mask_constant()
         return "fffffff0";
     case CFI_BUNDLE32:
         return "ffffffe0";
+    case CFI_SW_SHSTK:
     case CFI_HW:
         // no mask (just clear top 32 bits)
         return "ffffffff";
@@ -230,6 +235,7 @@ bundle_nop_indcall()
             mkdirective(".byte 0x0f, 0x1f, 0x40, 0x00"); // 4-byte nop
         }
         break;
+    case CFI_SW_SHSTK:
     case CFI_HW:
         break;
     default:
@@ -251,6 +257,7 @@ bundle_nop_call()
         mkdirective(".byte 0x65, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00"); // 11-byte nop
         mkdirective(".byte 0x66, 0x0f, 0x1f, 0x44, 0x00, 0x00"); // 6-byte nop
         return;
+    case CFI_SW_SHSTK:
     case CFI_HW:
         return;
     }

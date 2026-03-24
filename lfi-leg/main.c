@@ -185,6 +185,8 @@ parse_opt(int key, char* arg, struct argp_state* state)
             args->cfi = CFI_BUNDLE16;
         else if (strcmp(arg, "bundle32") == 0)
             args->cfi = CFI_BUNDLE32;
+        else if (strcmp(arg, "return") == 0)
+            args->cfi = CFI_SW_SHSTK;
         else if (strcmp(arg, "none") == 0)
             args->cfi = CFI_HW;
         else {
