@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 #include "config.h"
 #include "host.h"
@@ -49,6 +50,8 @@ extern void lfi_set_tp(void)
     asm ("lfi_set_tp");
 extern void lfi_ret(void)
     asm ("lfi_ret");
+extern void lfi_scs_unwind(void)
+    asm("lfi_scs_unwind");
 
 static void
 syssetup(struct LFIPlatform* plat, struct Sys* sys, uintptr_t base)
@@ -57,6 +60,7 @@ syssetup(struct LFIPlatform* plat, struct Sys* sys, uintptr_t base)
     sys->rtcalls[1] = (uintptr_t) 0;
     sys->rtcalls[2] = (uintptr_t) 0;
     sys->rtcalls[3] = (uintptr_t) &lfi_ret;
+    sys->rtcalls[4] = (uintptr_t) &lfi_scs_unwind;
     sys->base = base;
     // Only used in sysexternal mode (where there is a syspage per context)
     if (plat->opts.sysexternal)
@@ -93,9 +97,31 @@ lfi_ctx_new(struct LFIAddrSpace* as, void* ctxp, bool main)
         .tp = 0,
     };
 
+    ctx->ctxreg[0] = (uintptr_t)ctx;
+
     lfi_regs_init(&ctx->regs, as, ctx);
 
+    enum { SCS_SIZE = 2 * 1024 * 1024 };
+    size_t pagesize = 4096;
+    size_t total = pagesize + SCS_SIZE + pagesize;
+    void* region = mmap(NULL, total, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (region == MAP_FAILED) {
+        goto err;
+    }
+
+    void* scs = (char*) region + pagesize;
+    if (mprotect(scs, SCS_SIZE, PROT_READ | PROT_WRITE) != 0) {
+        goto err1;
+    }
+
+    ctx->scs_base = region;
+    ctx->scs_limit = (char *) scs + SCS_SIZE;
+    ctx->scs_total = total;
+    ctx->ctxreg[2] = (uint64_t) scs + SCS_SIZE;
+
     return ctx;
+err1:
+    munmap(region, total);
 err:
     free(ctx);
     return NULL;
@@ -115,6 +141,7 @@ lfi_ctx_run(struct LFIContext* ctx, struct LFIAddrSpace* as)
 EXPORT void
 lfi_ctx_free(struct LFIContext* ctx)
 {
+    munmap(ctx->scs_base, ctx->scs_total);
     free(ctx);
 }
 

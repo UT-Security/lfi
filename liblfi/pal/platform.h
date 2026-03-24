@@ -42,13 +42,16 @@ struct LFIContext {
     void* kstackp;
     uintptr_t tp;
     uintptr_t ktpderef;
-    uintptr_t _pad;
+    void* scs_limit;
     struct TuxRegs regs;
     void* ctxp;
     struct Sys* sys;
     struct LFIAddrSpace* as;
 
     uint64_t ctxreg[8];
+
+    void* scs_base;
+    size_t scs_total;
 
     uintptr_t elfbase;
     struct ElfTable symtab;

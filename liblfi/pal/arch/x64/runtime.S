@@ -1,9 +1,9 @@
 #define N_RTCALLS 256
+#define PROC_SCS_LIMIT 24
 #define PROC_REGS 32
 
 .macro SAVE_PARTIAL_REGS
-    mov lfi_myctx@gottpoff(%rip), %rcx
-    movq %fs:(%rcx), %rcx
+    movq %gs:0x0, %rcx
     mov %rsp, PROC_REGS+8*0(%rcx)
     mov %rax, PROC_REGS+8*1(%rcx)
     // rcx clobbered
@@ -23,8 +23,7 @@
 .global lfi_ctx_internal
 // This function assumes the return address is in r11
 lfi_ctx_internal:
-    mov lfi_myctx@gottpoff(%rip), %rax
-    movq %fs:(%rax), %rax
+    movq %gs:0x0, %rax
     jmpq *%r11
 
 .p2align 4
@@ -79,8 +78,7 @@ lfi_asm_ctx_exit:
 .p2align 4
 .global lfi_ret
 lfi_ret:
-	movq lfi_myctx@gottpoff(%rip), %r11
-	movq %fs:(%r11), %r11
+	movq %gs:0x0, %r11
 	movq 0(%r11), %rsp // kstackp
     // restore user sp to its initial value
     popq %rbp
@@ -155,5 +153,37 @@ lfi_restore_partial_regs:
     // TODO: restore SIMD regs
     jmpq *%r11
     int3
+
+// SCS unwind: pop n entries from the shadow call stack.
+// Input: %edi = number of entries to unwind.
+.global lfi_scs_unwind
+.p2align 4
+lfi_scs_unwind:
+    // Software shadow call stack: add n*8 to SCS pointer, clamped to limit.
+    movq %rsp, %gs:0x18
+    movq %gs:0x0, %rsp
+    movq  0(%rsp), %rsp
+
+    pushq %rax
+    pushq %rcx
+
+    // Compute new SCS pointer
+    movl %edi, %eax
+    shlq $3, %rax
+    movq %gs:0x10, %rcx
+    addq %rax, %rcx
+
+    // Bounds check: clamp to scs_limit
+    movq %gs:0x0, %rax
+    cmpq PROC_SCS_LIMIT(%rax), %rcx
+    jbe .Lscs_unwind_ok
+    movq PROC_SCS_LIMIT(%rax), %rcx
+.Lscs_unwind_ok:
+    movq %rcx, %gs:0x10
+
+    popq %rcx
+    popq %rax
+    movq %gs:0x18, %rsp
+    jmpq *%r11
 
 .section .note.GNU-stack,"",@progbits
