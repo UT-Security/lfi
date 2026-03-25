@@ -14,10 +14,16 @@
 static int count;
 %}
 
-Top = (OpTP_any) !.
+Top = (OpTP_any | OpTP_canary) !.
 
 OpTP_any = m:NAME '%fs:' '0x'? '0' - COMMA r:REG - {
     mkinsn("%s %%gs:0x20, %s", m.val, r.val);
+    rfree(r); rfree(m);
+}
+
+OpTP_canary = m:NAME '%fs:' n:NUM - COMMA r:REG - {
+    mkinsn("movq %%gs:0x20, %%r11", m.val);
+    mkinsn("%s %s(%%r11), %s", m.val, n.val, r.val);
     rfree(r); rfree(m);
 }
 
