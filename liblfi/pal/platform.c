@@ -39,7 +39,7 @@ lfi_new_plat(struct LFIPlatOptions opts)
         .err = showerr
     };
 
-    verifier->verify = NULL;
+    verifier->verify = lfiv_verify_x64_large;
 
     *plat = (struct LFIPlatform) {
         .bm = bm,
