@@ -14,16 +14,12 @@ Top = Branch | BranchMem | CallTLS | CallIndNoSP | CallInd | CallIndMem | Call |
 
 CallIndNoSP = 'call' 'q'? SEP '*' r:XREG_NOSP {
     if (args.cfi == CFI_SW_SHSTK) {
-        mkinsn("movq %%rsp, %%gs:0x18");
-        mkinsn("movq %%gs:0x10, %%rsp");
+        mkinsn("subq $0x8, %%r15");
         mkinsn("lea %sf(%%rip), %%r11", funcret);
-        mkinsn("pushq %%r11");
-        mkinsn("movq %%rsp, %%gs:0x10");
-        mkinsn("movq %%gs:0x18, %%rsp");
+        mkinsn("movq %%r11, (%%r15)");
         mkinsn("callq *%s", r.val);
         mkfuncret();
-        mkinsn("movq %%rsp, %%gs:0x10");
-        mkinsn("movq %%r11, %%rsp");
+        mkinsn("xchgq %%rsp, %%r15");
         mkinsn("popq %%r11");
         rfree(r);
     } else if (args.usecall) {
@@ -48,16 +44,12 @@ CallIndNoSP = 'call' 'q'? SEP '*' r:XREG_NOSP {
 
 CallInd = 'call' 'q'? SEP '*' r:XREG {
     if (args.cfi == CFI_SW_SHSTK) {
-        mkinsn("movq %%rsp, %%gs:0x18");
-        mkinsn("movq %%gs:0x10, %%rsp");
+        mkinsn("subq $0x8, %%r15");
         mkinsn("lea %sf(%%rip), %%r11", funcret);
-        mkinsn("pushq %%r11");
-        mkinsn("movq %%rsp, %%gs:0x10");
-        mkinsn("movq %%gs:0x18, %%rsp");
+        mkinsn("movq %%r11, (%%r15)");
         mkinsn("callq *%s", r.val);
         mkfuncret();
-        mkinsn("movq %%rsp, %%gs:0x10");
-        mkinsn("movq %%r11, %%rsp");
+        mkinsn("xchgq %%rsp, %%r15");
         mkinsn("popq %%r11");
         rfree(r);
     } else if(args.usecall) {
@@ -92,16 +84,12 @@ CallTLS = 'call' 'q'? SEP '*' n:NAME '@TLSCALL' LP x:XREG_NOSP RP {
 
 CallIndMem = 'call' 'q'? SEP '*' a:Addr {
     if (args.cfi == CFI_SW_SHSTK) {
-        mkinsn("movq %%rsp, %%gs:0x18");
-        mkinsn("movq %%gs:0x10, %%rsp");
+        mkinsn("subq $0x8, %%r15");
         mkinsn("lea %sf(%%rip), %%r11", funcret);
-        mkinsn("pushq %%r11");
-        mkinsn("movq %%rsp, %%gs:0x10");
-        mkinsn("movq %%gs:0x18, %%rsp");
+        mkinsn("movq %%r11, (%%r15)");
         mkinsn("callq *%s", a.unmod);
         mkfuncret();
-        mkinsn("movq %%rsp, %%gs:0x10");
-        mkinsn("movq %%r11, %%rsp");
+        mkinsn("xchgq %%rsp, %%r15");
         mkinsn("popq %%r11");
     } else if (args.usecall) {
         if (args.boxtype < BOX_FULL) {
@@ -159,16 +147,12 @@ CallIndMem = 'call' 'q'? SEP '*' a:Addr {
 
 Call = 'call' 'q'? - rest:ITEM {
     if (args.cfi == CFI_SW_SHSTK) {
-        mkinsn("movq %%rsp, %%gs:0x18");
-        mkinsn("movq %%gs:0x10, %%rsp");
+        mkinsn("subq $0x8, %%r15");
         mkinsn("lea %sf(%%rip), %%r11", funcret);
-        mkinsn("pushq %%r11");
-        mkinsn("movq %%rsp, %%gs:0x10");
-        mkinsn("movq %%gs:0x18, %%rsp");
+        mkinsn("movq %%r11, (%%r15)");
         mkinsn("callq %s", rest.val);
         mkfuncret();
-        mkinsn("movq %%rsp, %%gs:0x10");
-        mkinsn("movq %%r11, %%rsp");
+        mkinsn("xchgq %%rsp, %%r15");
         mkinsn("popq %%r11");
     } else if (args.usecall) {
         if (args.bundlecall)
@@ -247,8 +231,7 @@ Ret = 'ret' 'q'? - {
     if (args.useret) {
         mkinsn("ret");
     } else if (args.cfi == CFI_SW_SHSTK) {
-        mkinsn("movq %%rsp, %%r11");
-        mkinsn("movq %%gs:0x10, %%rsp");
+        mkinsn("xchgq %%rsp, %%r15");
         mkinsn("ret");
     } else if (args.singlethread && args.boxtype <= BOX_BUNDLEJUMPS) {
         mkdirective(bundle_lock());

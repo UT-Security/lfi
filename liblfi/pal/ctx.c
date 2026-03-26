@@ -99,8 +99,6 @@ lfi_ctx_new(struct LFIAddrSpace* as, void* ctxp, bool main)
 
     ctx->ctxreg[0] = (uintptr_t)ctx;
 
-    lfi_regs_init(&ctx->regs, as, ctx);
-
     enum { SCS_SIZE = 2 * 1024 * 1024 };
     size_t pagesize = 4096;
     size_t total = pagesize + SCS_SIZE + pagesize;
@@ -117,7 +115,8 @@ lfi_ctx_new(struct LFIAddrSpace* as, void* ctxp, bool main)
     ctx->scs_base = region;
     ctx->scs_limit = (char *) scs + SCS_SIZE;
     ctx->scs_total = total;
-    ctx->ctxreg[2] = (uint64_t) scs + SCS_SIZE;
+
+    lfi_regs_init(&ctx->regs, as, ctx);
 
     return ctx;
 err1:

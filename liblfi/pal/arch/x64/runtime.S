@@ -170,7 +170,7 @@ lfi_scs_unwind:
     // Compute new SCS pointer
     movl %edi, %eax
     shlq $3, %rax
-    movq %gs:0x10, %rcx
+    movq %r15, %rcx
     addq %rax, %rcx
 
     // Bounds check: clamp to scs_limit
@@ -179,7 +179,7 @@ lfi_scs_unwind:
     jbe .Lscs_unwind_ok
     movq PROC_SCS_LIMIT(%rax), %rcx
 .Lscs_unwind_ok:
-    movq %rcx, %gs:0x10
+    movq %rcx, %r15
 
     popq %rcx
     popq %rax
