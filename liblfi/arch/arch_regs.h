@@ -8,3 +8,5 @@ void regs_init(struct TuxRegs* regs, lfiptr_t entry, lfiptr_t sp);
 uintptr_t* regs_return(struct TuxRegs* regs);
 
 uintptr_t* regs_sp(struct TuxRegs* regs);
+
+uintptr_t* regs_scs(struct TuxRegs* regs);

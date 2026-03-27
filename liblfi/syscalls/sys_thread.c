@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdatomic.h>
 #include <stdalign.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "align.h"
@@ -136,6 +137,7 @@ spawn(struct TuxThread* p, uint64_t flags, uint64_t stack, uint64_t ptidp, uint6
     struct TuxRegs* regs = lfi_ctx_regs(p2->p_ctx);
     *regs_return(regs) = 0;
     *regs_sp(regs) = stack;
+    *regs_scs(regs) = (uintptr_t)p2->p_ctx->scs_limit;
 
     if (p->proc->tux->opts.libinit) {
         // A new thread is being created during sobox initialization. Instead
