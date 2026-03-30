@@ -25,5 +25,5 @@ regs_sp(struct TuxRegs* regs)
 uintptr_t*
 regs_scs(struct TuxRegs* regs)
 {
-    return &regs->r15;
+    return &regs->r12;
 }
