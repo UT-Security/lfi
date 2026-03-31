@@ -8,7 +8,6 @@ lfi_regs_init(struct TuxRegs* regs, struct LFIAddrSpace* as, struct LFIContext* 
     regs->gs  = as->base;
     regs->rsp = as->base;
     regs->r15 = 0xffffffffffffffff;
-    regs->r12 = (uintptr_t) ctx->scs_limit;
     regs->r15 = as->size - 1;
 }
 

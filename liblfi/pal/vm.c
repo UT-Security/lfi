@@ -24,7 +24,7 @@ lfi_as_new(struct LFIPlatform* plat)
     if (!as)
         return NULL;
     size_t size = plat->opts.vmsize;
-    uintptr_t base = boxmap_addspace(plat->bm, size);
+    uintptr_t base = boxmap_addspace(plat->bm, size * 2);
     if (base == 0)
         goto err1;
 
@@ -42,7 +42,7 @@ lfi_as_new(struct LFIPlatform* plat)
     return as;
 
 err2:
-    boxmap_rmspace(plat->bm, base, size);
+    boxmap_rmspace(plat->bm, base, size * 2);
 err1:
     free(as);
     return NULL;

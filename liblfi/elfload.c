@@ -19,7 +19,7 @@ enum {
 };
 
 enum {
-    STACKSIZE = 3ULL * 1024 * 1024,
+    STACKSIZE = 2ULL * 1024 * 1024,
     CODEMAX   = 1ULL * 1024 * 1024 * 1024,
 };
 
@@ -265,5 +265,6 @@ elfload(struct TuxThread* p, uint8_t* progdat, size_t progsz, uint8_t* interpdat
     }
     p->p_ctx->elfbase = o_info->elfbase;
     p->stack = o_info->stack;
+    p->stacksize = o_info->stacksize;
     return true;
 }

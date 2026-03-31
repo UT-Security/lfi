@@ -98,6 +98,7 @@ struct LFIAddrSpace*    lfi_ctx_as(struct LFIContext* ctx);
 bool                    lfi_ctx_validptr(struct LFIContext* ctx, lfiptr_t lp);
 struct LFIContext*      lfi_get_myctx(void);
 void                    lfi_set_myctx(struct LFIContext *ctx);
+bool                    lfi_ctx_init_shstk(struct LFIContext *ctx, uintptr_t stack, size_t size);
 
 void                    lfi_sys_handler(struct LFIPlatform* plat, SysHandlerFn fn);
 

@@ -99,28 +99,9 @@ lfi_ctx_new(struct LFIAddrSpace* as, void* ctxp, bool main)
 
     ctx->ctxreg[0] = (uintptr_t)ctx;
 
-    enum { SCS_SIZE = 2 * 1024 * 1024 };
-    size_t pagesize = 4096;
-    size_t total = pagesize + SCS_SIZE + pagesize;
-    void* region = mmap(NULL, total, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (region == MAP_FAILED) {
-        goto err;
-    }
-
-    void* scs = (char*) region + pagesize;
-    if (mprotect(scs, SCS_SIZE, PROT_READ | PROT_WRITE) != 0) {
-        goto err1;
-    }
-
-    ctx->scs_base = region;
-    ctx->scs_limit = (char *) scs + SCS_SIZE;
-    ctx->scs_total = total;
-
     lfi_regs_init(&ctx->regs, as, ctx);
 
     return ctx;
-err1:
-    munmap(region, total);
 err:
     free(ctx);
     return NULL;
@@ -140,7 +121,7 @@ lfi_ctx_run(struct LFIContext* ctx, struct LFIAddrSpace* as)
 EXPORT void
 lfi_ctx_free(struct LFIContext* ctx)
 {
-    munmap(ctx->scs_base, ctx->scs_total);
+    (void)mmap(ctx->scs_base, ctx->scs_total, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
     free(ctx);
 }
 
@@ -223,4 +204,15 @@ lfi_set_myctx(struct LFIContext* new_ctx) {
     if (new_ctx)
         __asm__ __volatile__("wrgsbase %0" : : "r"(&new_ctx->ctxreg));
     lfi_myctx = new_ctx;
+}
+
+EXPORT bool
+lfi_ctx_init_shstk(struct LFIContext *ctx, uintptr_t stack, size_t size) {
+    void* region = mmap((void*)stack, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+    if (region == MAP_FAILED || region != (void*)stack) {
+        return false;
+    }
+    ctx->scs_base = region;
+    ctx->scs_limit = (void*)(stack + size);
+    ctx->scs_total = size;
 }

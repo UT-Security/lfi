@@ -82,6 +82,10 @@ err:
     return NULL;
 }
 
+uintptr_t procshstk(struct TuxProc* p, lfiptr_t stack) {
+    return stack + p->p_as->size;
+}
+
 static struct TuxThread*
 procnewfile(struct Tux* tux, uint8_t* prog, size_t size, int argc, char** argv)
 {
@@ -216,6 +220,8 @@ procsetup(struct TuxThread* p, uint8_t* prog, size_t progsz, uint8_t* interp, si
     bool b = elfload(p, prog, progsz, interp, interpsz, &info);
     if (!b)
         return false;
+
+    lfi_ctx_init_shstk(p->p_ctx, procshstk(p->proc, info.stack), info.stacksize);
 
     lfiptr_t sp;
     if (!stacksetup(p->proc, argc, argv, &info, &sp))

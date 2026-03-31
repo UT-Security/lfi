@@ -119,6 +119,7 @@ struct TuxProc {
 struct TuxThread {
     struct LFIContext* p_ctx;
     lfiptr_t stack;
+    size_t stacksize;
 
     uintptr_t ctid;
     int tid;
@@ -143,3 +144,5 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t dst, size_t value, size_t patc
 int procdeletejitcode(struct TuxProc* p, lfiptr_t dst, size_t length);
 
 struct TuxThread* procnewthread(struct TuxThread* p);
+
+uintptr_t procshstk(struct TuxProc* p, lfiptr_t stack);
