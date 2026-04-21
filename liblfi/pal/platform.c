@@ -15,10 +15,6 @@ static void showerr(char* msg, size_t sz) {
 EXPORT struct LFIPlatform*
 lfi_new_plat(struct LFIPlatOptions opts)
 {
-    struct LFIVerifier* verifier = malloc(sizeof(LFIVerifier));
-    if (!verifier)
-        return NULL;
-
     struct LFIPlatform* plat = malloc(sizeof(struct LFIPlatform));
     if (!plat)
         goto err1;
@@ -33,18 +29,10 @@ lfi_new_plat(struct LFIPlatOptions opts)
     if (!boxmap_reserve(bm, gb(1024)))
         goto err3;
 
-    verifier->opts = (struct LFIVOptions) {
-        .box = LFI_BOX_STORES,
-        .guardsize = gb(2),
-        .err = showerr
-    };
-
-    verifier->verify = lfiv_verify_x64_large;
-
     *plat = (struct LFIPlatform) {
         .bm = bm,
         .opts = opts,
-        .verifier = verifier,
+        .verifier = NULL,
     };
     return plat;
 
@@ -53,7 +41,6 @@ err3:
 err2:
     free(plat);
 err1:
-    free(verifier);
     return NULL;
 }
 
